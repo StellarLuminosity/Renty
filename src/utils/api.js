@@ -70,7 +70,31 @@ export const authAPI = {
     } catch (error) {
       throw new Error(error.response?.data?.error || 'Failed to get profile');
     }
-  }
+  },
+  
+  // SMS Verification for signup
+  sendSMSVerification: async (phoneNumber) => {
+    try {
+      const response = await api.post('/send-sms-verification', {
+        phone_number: phoneNumber
+      });
+      return { data: response.data };
+    } catch (error) {
+      throw new Error(error.response?.data?.error || 'Failed to send SMS verification');
+    }
+  },
+  
+  verifySMSCode: async (phoneNumber, verificationCode) => {
+    try {
+      const response = await api.post('/verify-sms-code', {
+        phone_number: phoneNumber,
+        verification_code: verificationCode
+      });
+      return { data: response.data };
+    } catch (error) {
+      throw new Error(error.response?.data?.error || 'Failed to verify SMS code');
+    }
+  },
 };
 
 // Real API calls - no more mock data storage

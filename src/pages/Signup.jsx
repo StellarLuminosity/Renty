@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { authAPI } from '../utils/api';
+import SMSVerification from '../components/SMSVerification';
 
 const Signup = () => {
   const [formData, setFormData] = useState({
@@ -16,6 +17,8 @@ const Signup = () => {
   const [previewUrl, setPreviewUrl] = useState('');
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
+  const [showSMSVerification, setShowSMSVerification] = useState(false);
+  const [smsVerifying, setSmsVerifying] = useState(false);
   
   const { login, isAuthenticated } = useAuth();
   const navigate = useNavigate();
@@ -117,7 +120,42 @@ const Signup = () => {
     setErrors({});
 
     try {
-      // Prepare signup data
+      // Step 1: Send SMS verification
+      const response = await fetch('http://localhost:8000/api/send-sms-verification', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          phone_number: formData.phoneNumber.trim()
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        // Show SMS verification modal
+        setShowSMSVerification(true);
+      } else {
+        setErrors({ 
+          general: data.error || 'Failed to send SMS verification. Please try again.' 
+        });
+      }
+    } catch (error) {
+      console.error('SMS send error:', error);
+      setErrors({ 
+        general: 'Failed to send SMS verification. Please try again.' 
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSMSVerified = async () => {
+    setSmsVerifying(true);
+
+    try {
+      // Step 2: Create account after SMS verification
       const signupData = {
         email: formData.email.trim(),
         phone_number: formData.phoneNumber.trim(),
@@ -136,20 +174,29 @@ const Signup = () => {
       // Call signup API
       const response = await authAPI.signup(signupData);
 
-      // Signup success - log the user in
-      login(response.data.user);
+      // Signup success - log the user in with token
+      const userWithToken = {
+        ...response.data.user,
+        token: response.data.token
+      };
+      login(userWithToken);
       
       // Navigate to dashboard
       navigate('/dashboard');
       
     } catch (error) {
       console.error('Signup error:', error);
+      setShowSMSVerification(false);
       setErrors({ 
         general: error.message || 'Account creation failed. Please try again.' 
       });
     } finally {
-      setLoading(false);
+      setSmsVerifying(false);
     }
+  };
+
+  const handleSMSCancel = () => {
+    setShowSMSVerification(false);
   };
 
   return (
@@ -366,7 +413,7 @@ const Signup = () => {
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                     </svg>
-                    Creating account...
+                    Sending SMS...
                   </>
                 ) : (
                   'Create Account'
@@ -389,6 +436,15 @@ const Signup = () => {
           </form>
         </div>
       </div>
+      
+      {/* SMS Verification Modal */}
+      {showSMSVerification && (
+        <SMSVerification
+          phoneNumber={formData.phoneNumber}
+          onVerified={handleSMSVerified}
+          onCancel={handleSMSCancel}
+        />
+      )}
     </div>
   );
 };

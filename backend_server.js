@@ -10,6 +10,12 @@ const jwt = require('jsonwebtoken');
 const multer = require('multer');
 const { MongoClient, ObjectId } = require('mongodb');
 const dotenv = require('dotenv');
+const pdfParse = require('pdf-parse');
+const mammoth = require('mammoth');
+const axios = require('axios');
+const path = require('path');
+const fs = require('fs');
+const { AuthenticationClient } = require('auth0');
 
 // Load environment variables
 dotenv.config();
@@ -32,12 +38,37 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// File upload configuration (for now storing as base64, will need cloud storage later)
+// File upload configuration with disk storage
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, 'uploads/') // Save to uploads directory
+  },
+  filename: function (req, file, cb) {
+    // Generate unique filename: timestamp_random_originalname
+    const uniqueSuffix = Date.now() + '_' + Math.round(Math.random() * 1E9);
+    cb(null, uniqueSuffix + '_' + file.originalname);
+  }
+});
+
 const upload = multer({ 
-  storage: multer.memoryStorage(),
+  storage: storage,
   limits: { 
     fileSize: 10 * 1024 * 1024, // 10MB limit per file
     files: 20 // Max 20 files
+  },
+  fileFilter: (req, file, cb) => {
+    // Accept images, PDFs, and text documents
+    const allowedTypes = [
+      'image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp',
+      'application/pdf',
+      'text/plain', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+    ];
+    
+    if (allowedTypes.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only images, PDFs, and text documents are allowed'), false);
+    }
   }
 });
 
@@ -92,16 +123,169 @@ function processUploadedFiles(files) {
     name: file.originalname,
     type: file.mimetype,
     size: file.size,
-    url: `mock_upload_${Date.now()}_${Math.random().toString(36).substr(2, 9)}.${file.originalname.split('.').pop()}`,
+    filename: file.filename, // Actual saved filename
+    url: `/api/files/${file.filename}`, // URL to retrieve the file
     uploaded_date: new Date()
   }));
 }
 
+// Auth0 Configuration for SMS verification
+const auth0Domain = process.env.AUTH0_DOMAIN;
+const auth0ClientId = process.env.AUTH0_CLIENT_ID;
+const auth0ClientSecret = process.env.AUTH0_CLIENT_SECRET;
+
+// Mock SMS store for development (use Redis/DB in production)
+const mockSmsStore = new Map();
+
+// Function to send SMS verification code via Auth0 API
+async function sendSmsVerification(phoneNumber) {
+  try {
+    const response = await axios.post(`https://${auth0Domain}/passwordless/start`, {
+      client_id: auth0ClientId,
+      client_secret: auth0ClientSecret,
+      connection: 'sms',
+      phone_number: phoneNumber,
+      send: 'code'
+    }, {
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    });
+    return response.data;
+  } catch (error) {
+    console.error('SMS send error:', error.response?.data || error.message);
+    throw error;
+  }
+}
+
+// Function to verify SMS code via Auth0 API
+async function verifySmsCode(phoneNumber, verificationCode) {
+  try {
+    const response = await axios.post(`https://${auth0Domain}/oauth/token`, {
+      grant_type: 'http://auth0.com/oauth/grant-type/passwordless/otp',
+      client_id: auth0ClientId,
+      client_secret: auth0ClientSecret,
+      username: phoneNumber,
+      otp: verificationCode,
+      realm: 'sms',
+      scope: 'openid'
+    }, {
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    });
+    return response.data;
+  } catch (error) {
+    console.error('SMS verification error:', error.response?.data || error.message);
+    throw error;
+  }
+}
+
 // Routes
+
+// SMS verification routes
+app.post('/api/send-sms-verification', async (req, res) => {
+  try {
+    const { phone_number } = req.body;
+    console.log('📱 SMS verification request for phone:', phone_number);
+    
+    // Basic phone number validation
+    if (!phone_number || !phone_number.match(/^\+?[1-9]\d{1,14}$/)) {
+      return res.status(400).json({ 
+        error: 'Invalid phone number format' 
+      });
+    }
+    
+    // Format phone number with +1 if not present
+    const formattedPhone = phone_number.startsWith('+') ? phone_number : `+1${phone_number}`;
+    console.log('📱 Formatted phone:', formattedPhone);
+    
+    // Send real SMS via Auth0
+    await sendSmsVerification(formattedPhone);
+    
+    res.json({ 
+      success: true, 
+      message: 'SMS verification code sent successfully to ' + formattedPhone
+    });
+    
+  } catch (error) {
+    console.error('❌ Error sending SMS verification:', error.response?.data || error.message);
+    
+    // Handle specific Auth0 errors
+    if (error.response?.status === 403 && error.response?.data?.error === 'unauthorized_client') {
+      return res.status(400).json({ 
+        error: 'SMS service not configured. Please enable Passwordless OTP grant type in Auth0 dashboard.',
+        auth0_error: 'Grant type not allowed'
+      });
+    }
+    
+    res.status(500).json({ 
+      error: 'Failed to send SMS verification code', 
+      details: error.response?.data || error.message 
+    });
+  }
+});
+
+app.post('/api/verify-sms-code', async (req, res) => {
+  try {
+    const { phone_number, verification_code } = req.body;
+    console.log('🔍 SMS verification attempt for phone:', phone_number, 'code:', verification_code);
+    
+    // Basic validation
+    if (!phone_number || !verification_code) {
+      return res.status(400).json({ 
+        error: 'Phone number and verification code are required' 
+      });
+    }
+    
+    // Format phone number with +1 if not present
+    const formattedPhone = phone_number.startsWith('+') ? phone_number : `+1${phone_number}`;
+    console.log('🔍 Verifying formatted phone:', formattedPhone);
+    
+    // Verify SMS code via Auth0
+    const result = await verifySmsCode(formattedPhone, verification_code);
+    console.log('✅ SMS verification successful for:', formattedPhone);
+    
+    res.json({ 
+      success: true, 
+      message: 'Phone number verified successfully',
+      result: result
+    });
+    
+  } catch (error) {
+    console.error('❌ Error verifying SMS code:', error);
+    
+    // Handle specific Auth0 errors
+    if (error.response?.status === 403) {
+      return res.status(400).json({ 
+        error: 'Invalid verification code. Please try again.' 
+      });
+    }
+    
+    res.status(500).json({ 
+      error: 'Failed to verify SMS code', 
+      details: error.response?.data || error.message 
+    });
+  }
+});
 
 // Health check
 app.get('/api/health', (req, res) => {
   res.json({ status: 'OK', timestamp: new Date().toISOString() });
+});
+
+// File serving endpoint
+app.get('/api/files/:filename', (req, res) => {
+  const filename = req.params.filename;
+  const filePath = path.join(__dirname, 'uploads', filename);
+  
+  // Check if file exists
+  if (!fs.existsSync(filePath)) {
+    return res.status(404).json({ error: 'File not found' });
+  }
+  
+  // Send file with proper content type
+  res.sendFile(filePath);
 });
 
 // Auth endpoints
@@ -337,6 +521,11 @@ app.post('/api/tenants', authenticateToken, async (req, res) => {
 
 // Review endpoints
 app.post('/api/reviews', authenticateToken, upload.array('proof_files'), async (req, res) => {
+  console.log('🔍 === REVIEW SUBMISSION DEBUG START ===');
+  console.log('📄 Request Body:', req.body);
+  console.log('📁 Files:', req.files?.length || 0);
+  console.log('👤 User:', req.user);
+  
   try {
     const {
       tenant_id,
@@ -351,6 +540,12 @@ app.post('/api/reviews', authenticateToken, upload.array('proof_files'), async (
       property_care,
       legal_disputes
     } = req.body;
+    
+    console.log('🏠 Extracted data:');
+    console.log('  - Tenant ID:', tenant_id);
+    console.log('  - Rating:', rating);
+    console.log('  - Property:', property_address);
+    console.log('  - Period:', rental_period);
 
     if (!tenant_id || !rating) {
       return res.status(400).json({ error: 'Tenant ID and rating are required' });
@@ -419,14 +614,201 @@ app.post('/api/reviews', authenticateToken, upload.array('proof_files'), async (
 
     newReview._id = result.insertedId;
 
+    console.log('✅ Review submitted successfully!');
+    console.log('🏁 === REVIEW SUBMISSION DEBUG END (SUCCESS) ===');
+    
     res.status(201).json({
       message: 'Review submitted successfully',
       data: newReview
     });
 
   } catch (error) {
-    console.error('Submit review error:', error);
+    console.error('🚫 REVIEW SUBMISSION ERROR:', error.message);
+    console.error('📜 Error Stack:', error.stack);
+    console.error('📝 Error Details:', error);
+    console.log('🏁 === REVIEW SUBMISSION DEBUG END (ERROR) ===');
     res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Lease Document Verification Endpoint
+app.post('/api/verify-lease', authenticateToken, upload.single('lease_document'), async (req, res) => {
+  try {
+    const { tenant_name } = req.body;
+    const landlord = await db.collection('landlords').findOne({ _id: new ObjectId(req.user.id) });
+    
+    if (!landlord) {
+      return res.status(404).json({ error: 'Landlord not found' });
+    }
+
+    if (!req.file) {
+      return res.status(400).json({ error: 'Lease document is required' });
+    }
+
+    if (!tenant_name) {
+      return res.status(400).json({ error: 'Tenant name is required' });
+    }
+
+    // Extract text from document
+    let documentText = '';
+    const filePath = req.file.path; // File path on disk
+    const fileType = req.file.mimetype;
+
+    try {
+      // Read file from disk
+      const fileBuffer = fs.readFileSync(filePath);
+      
+      if (fileType === 'application/pdf') {
+        const pdfData = await pdfParse(fileBuffer);
+        documentText = pdfData.text;
+      } else if (fileType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' || fileType === 'application/msword') {
+        const result = await mammoth.extractRawText({ buffer: fileBuffer });
+        documentText = result.value;
+      } else {
+        return res.status(400).json({ 
+          error: 'Unsupported file format. Please upload PDF or Word documents only.',
+          verification: {
+            is_valid: false,
+            landlord_match: false,
+            tenant_match: false,
+            confidence_score: 0,
+            error_message: 'Invalid file format'
+          }
+        });
+      }
+    } catch (parseError) {
+      console.error('Document parsing error:', parseError);
+      return res.status(400).json({ 
+        error: 'Failed to parse document. Please ensure the document is not corrupted.',
+        verification: {
+          is_valid: false,
+          landlord_match: false,
+          tenant_match: false,
+          confidence_score: 0,
+          error_message: 'Document parsing failed'
+        }
+      });
+    }
+
+    // Call Gemini API for verification
+    const prompt = `
+You are a lease document verification assistant. Please analyze this document and provide a JSON response with the following structure:
+{
+  "is_lease_document": boolean,
+  "landlord_name_match": boolean,
+  "tenant_name_match": boolean,
+  "confidence_score": number (0-100),
+  "extracted_landlord_name": "string or null",
+  "extracted_tenant_name": "string or null",
+  "document_type": "string"
+}
+
+Document to analyze:
+${documentText}
+
+Expected landlord name: "${landlord.name}"
+Expected tenant name: "${tenant_name}"
+
+Please verify:
+1. Is this a legitimate lease/rental agreement document?
+2. Does the landlord name in the document match "${landlord.name}"? (Allow for minor variations)
+3. Does the tenant name in the document match "${tenant_name}"? (Allow for minor variations)
+4. What is your confidence score (0-100) that this is a valid lease with correct names?
+
+Return ONLY the JSON response, no additional text.`;
+
+    const geminiResponse = await axios.post(
+      'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent',
+      {
+        contents: [{
+          parts: [{
+            text: prompt
+          }]
+        }]
+      },
+      {
+        headers: {
+          'Content-Type': 'application/json',
+          'X-goog-api-key': process.env.GEMINI_API_KEY
+        }
+      }
+    );
+
+    let verification;
+    try {
+      const responseText = geminiResponse.data.candidates[0].content.parts[0].text;
+      // Clean the response to extract JSON
+      const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        verification = JSON.parse(jsonMatch[0]);
+      } else {
+        throw new Error('No valid JSON found in response');
+      }
+    } catch (parseError) {
+      console.error('Gemini response parsing error:', parseError);
+      return res.status(500).json({ 
+        error: 'Failed to process document verification.',
+        verification: {
+          is_valid: false,
+          landlord_match: false,
+          tenant_match: false,
+          confidence_score: 0,
+          error_message: 'AI processing failed'
+        }
+      });
+    }
+
+    // Determine if verification passed
+    const isValid = verification.is_lease_document && 
+                   verification.landlord_name_match && 
+                   verification.tenant_name_match && 
+                   verification.confidence_score > 60;
+
+    // Clean up temporary file (we don't store lease documents)
+    try {
+      fs.unlinkSync(filePath);
+    } catch (cleanupError) {
+      console.warn('Could not delete temporary lease file:', cleanupError.message);
+    }
+    
+    res.status(200).json({
+      message: isValid ? 'Lease document verified successfully' : 'Lease document verification failed',
+      verification: {
+        is_valid: isValid,
+        landlord_match: verification.landlord_name_match,
+        tenant_match: verification.tenant_name_match,
+        confidence_score: verification.confidence_score,
+        extracted_landlord: verification.extracted_landlord_name,
+        extracted_tenant: verification.extracted_tenant_name,
+        document_type: verification.document_type
+      }
+    });
+
+  } catch (error) {
+    console.error('Lease verification error:', error);
+    if (error.response) {
+      console.error('Gemini API error:', error.response.data);
+    }
+    
+    // Clean up file even if there's an error
+    try {
+      if (req.file && req.file.path) {
+        fs.unlinkSync(req.file.path);
+      }
+    } catch (cleanupError) {
+      console.warn('Could not delete temporary lease file after error:', cleanupError.message);
+    }
+    
+    res.status(500).json({ 
+      error: 'Internal server error during lease verification',
+      verification: {
+        is_valid: false,
+        landlord_match: false,
+        tenant_match: false,
+        confidence_score: 0,
+        error_message: 'Server error'
+      }
+    });
   }
 });
 
@@ -459,6 +841,8 @@ async function startServer() {
     console.log(`   GET  /api/tenants/:id`);
     console.log(`   POST /api/tenants`);
     console.log(`   POST /api/reviews`);
+    console.log(`   POST /api/verify-lease`);
+    console.log(`   GET  /api/files/:filename`);
     console.log(`   GET  /api/health`);
   });
 }

@@ -71,6 +71,16 @@ const Profile = () => {
     });
   };
 
+  const handleViewFile = (file) => {
+    if (file.url) {
+      // Open file in new tab
+      window.open(`http://localhost:8000${file.url}`, '_blank');
+    } else {
+      console.error('File URL not available:', file);
+      alert('Sorry, this file is not available for viewing.');
+    }
+  };
+
   // Reviews are now created through the AddTenant flow
   // This page only displays tenant profiles with landlord reviews
 
@@ -150,96 +160,117 @@ const Profile = () => {
       </div>
 
       {/* Profile Header */}
-      <div className="card mb-8">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between">
-          <div className="flex items-center space-x-6">
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 mb-8">
+        {/* Main Profile Section */}
+        <div className="p-6">
+          <div className="flex flex-col sm:flex-row sm:items-start gap-6">
             {/* Profile Picture */}
             <div className="flex-shrink-0">
               {profile.profile_picture ? (
                 <img
                   src={profile.profile_picture}
                   alt={`${profile.name} profile`}
-                  className="h-24 w-24 rounded-full object-cover"
+                  className="h-20 w-20 rounded-full object-cover ring-4 ring-gray-100"
                 />
               ) : (
-                <div className="h-24 w-24 rounded-full bg-primary-100 flex items-center justify-center">
-                  <span className="text-primary-600 font-bold text-2xl">
+                <div className="h-20 w-20 rounded-full bg-primary-100 flex items-center justify-center ring-4 ring-gray-100">
+                  <span className="text-primary-600 font-bold text-xl">
                     {profile.name?.charAt(0)?.toUpperCase() || (profile.role === 'tenant' ? 'T' : 'L')}
                   </span>
                 </div>
               )}
             </div>
 
-            {/* Basic Info */}
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900 mb-2">
-                {profile.name || `Tenant ${profile._id}`}
-              </h1>
-              
-              <div className="flex items-center space-x-4 mb-3">
-                <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
-                  profile.role === 'landlord' 
-                    ? 'bg-blue-100 text-blue-800' 
-                    : 'bg-green-100 text-green-800'
-                }`}>
-                  {profile.role === 'landlord' ? '🏠 Landlord' : '🏠 Tenant'}
-                </span>
-              </div>
+            {/* Name & Basic Info */}
+            <div className="flex-1">
+              <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6">
+                <div className="space-y-4">
+                  {/* Name & Role */}
+                  <div>
+                    <h1 className="text-3xl font-bold text-gray-900 mb-3">
+                      {profile.name || `Tenant ${profile._id}`}
+                    </h1>
+                    
+                    <span className={`inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium ${
+                      profile.role === 'landlord' 
+                        ? 'bg-blue-100 text-blue-800' 
+                        : 'bg-green-100 text-green-800'
+                    }`}>
+                      {profile.role === 'landlord' ? '🏠 Landlord' : '🏠 Tenant'}
+                    </span>
+                  </div>
 
-              {/* Average Rating */}
-              <div className="flex items-center space-x-3">
-                <ReviewStars rating={averageRating} size="lg" />
-                <div>
-                  <span className="text-xl font-semibold text-gray-900">
-                    {averageRating.toFixed(1)}
-                  </span>
-                  <span className="text-gray-600 ml-1">
-                    ({(profile.reviews_received || profile.reviews || []).length} landlord review{(profile.reviews_received || profile.reviews || []).length !== 1 ? 's' : ''})
-                  </span>
+                  {/* Rating Section */}
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-3">
+                      <ReviewStars rating={averageRating} size="lg" />
+                      <div className="flex items-baseline gap-2">
+                        <span className="text-2xl font-bold text-gray-900">
+                          {averageRating.toFixed(1)}
+                        </span>
+                        <span className="text-gray-500 text-sm">
+                          out of 5
+                        </span>
+                      </div>
+                    </div>
+                    <p className="text-gray-600 text-sm">
+                      Based on {(profile.reviews_received || profile.reviews || []).length} landlord review{(profile.reviews_received || profile.reviews || []).length !== 1 ? 's' : ''}
+                    </p>
+                  </div>
+                </div>
+                
+                {/* Info Box */}
+                <div className="bg-blue-50 border border-blue-200 rounded-lg px-4 py-3 max-w-sm lg:max-w-xs">
+                  <div className="flex items-start gap-2">
+                    <svg className="h-5 w-5 text-blue-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                    </svg>
+                    <div>
+                      <p className="text-sm font-medium text-blue-900 mb-1">Tenant Profile</p>
+                      <p className="text-xs text-blue-800">
+                        Reviews from landlords who have rented to this tenant.
+                      </p>
+                    </div>
+                  </div>
                 </div>
               </div>
-
-              {/* --- Hackathon Feature: Credit Score & Bankruptcy Report --- */}
-              <div className="flex items-center space-x-6 mt-4">
-                <div className="flex items-center space-x-2">
-                  <span className="font-medium text-gray-700">Credit Rating:</span>
-                  <span className={
-                    profile.creditScoreLabel === 'Good' ? 'text-green-700 font-bold' :
-                    profile.creditScoreLabel === 'Bad' ? 'text-red-700 font-bold' :
-                    'text-yellow-700 font-bold'
-                  }>
-                    {profile.creditScoreLabel ?? 'N/A'}
-                  </span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <span className="font-medium text-gray-700">Bankruptcy Report:</span>
-                  <span className={profile.bankruptcyReport ? 'text-red-600 font-bold' : 'text-green-600 font-bold'}>
-                    {profile.bankruptcyReport ? 'Filed' : 'None'}
-                  </span>
-                </div>
-              </div>
-              {/*
-                // Example: How you would fetch these fields from an external API
-                // (Requires partnership/recognition with a credit bureau or financial org)
-                // useEffect(() => {
-                //   async function fetchCreditData() {
-                //     const response = await fetch('https://external-credit-api.com/score?tenantId=' + profile._id);
-                //     const data = await response.json();
-                //     setCreditScore(data.creditScore);
-                //     setBankruptcyReport(data.bankruptcyReport);
-                //   }
-                //   fetchCreditData();
-                // }, [profile._id]);
-              */}
             </div>
           </div>
+        </div>
 
-          {/* Info about tenant profile */}
-          <div className="mt-6 md:mt-0">
-            <div className="bg-gray-50 border border-gray-200 rounded-lg px-4 py-3">
-              <p className="text-sm text-gray-600">
-                <strong>Tenant Profile:</strong> Reviews from landlords who have rented to this tenant.
-              </p>
+        {/* Financial Info Section */}
+        <div className="border-t border-gray-200 bg-gray-50 px-6 py-4 rounded-b-xl">
+          <h3 className="text-sm font-semibold text-gray-700 mb-3 uppercase tracking-wide">Financial Information</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="bg-white rounded-lg p-4 border border-gray-200">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className={`w-2 h-2 rounded-full ${
+                    profile.creditScoreLabel === 'Good' ? 'bg-green-500' :
+                    profile.creditScoreLabel === 'Bad' ? 'bg-red-500' :
+                    'bg-yellow-500'
+                  }`}></div>
+                  <span className="font-medium text-gray-700">Credit Rating</span>
+                </div>
+                <span className={`font-bold ${
+                  profile.creditScoreLabel === 'Good' ? 'text-green-700' :
+                  profile.creditScoreLabel === 'Bad' ? 'text-red-700' :
+                  'text-yellow-700'
+                }`}>
+                  {profile.creditScoreLabel ?? 'N/A'}
+                </span>
+              </div>
+            </div>
+            <div className="bg-white rounded-lg p-4 border border-gray-200">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className={`w-2 h-2 rounded-full ${profile.bankruptcyReport ? 'bg-red-500' : 'bg-green-500'}`}></div>
+                  <span className="font-medium text-gray-700">Bankruptcy Report</span>
+                </div>
+                <span className={`font-bold ${profile.bankruptcyReport ? 'text-red-600' : 'text-green-600'}`}>
+                  {profile.bankruptcyReport ? 'Filed' : 'None'}
+                </span>
+              </div>
             </div>
           </div>
         </div>
@@ -345,9 +376,13 @@ const Profile = () => {
                             <p className="truncate font-medium" title={file.name}>{file.name}</p>
                             <div className="flex justify-between items-center mt-1">
                               <span>{(file.size / 1024 / 1024).toFixed(1)} MB</span>
-                              <span className="text-blue-600 hover:text-blue-800 cursor-pointer" title="View file">
+                              <button 
+                                className="text-blue-600 hover:text-blue-800 cursor-pointer text-xs font-medium"
+                                onClick={() => handleViewFile(file)}
+                                title="View file"
+                              >
                                 📎 View
-                              </span>
+                              </button>
                             </div>
                           </div>
                         </div>

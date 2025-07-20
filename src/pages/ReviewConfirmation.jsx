@@ -9,7 +9,7 @@ const ReviewConfirmation = () => {
   const { user: currentUser } = useAuth();
   
   // Get review data from navigation state
-  const { review, targetUser } = location.state || {};
+  const { review, targetUser, creditEarned } = location.state || {};
 
   // Redirect if no review data
   React.useEffect(() => {
@@ -65,6 +65,13 @@ const ReviewConfirmation = () => {
         <p className="text-gray-600">
           Thank you for sharing your experience. Your review has been successfully submitted.
         </p>
+        
+        {/* Credit Earned Notification */}
+        {creditEarned && (
+          <div className="mt-4 inline-flex items-center bg-primary-100 text-primary-800 px-4 py-2 rounded-full font-medium">
+            <span className="text-sm">🎉 You earned 1 credit for leaving this review!</span>
+          </div>
+        )}
       </div>
 
       {/* Review Summary */}

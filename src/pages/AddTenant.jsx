@@ -47,6 +47,15 @@ const AddTenant = () => {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [errors, setErrors] = useState({});
   const [submitting, setSubmitting] = useState(false);
+  
+  // Lease verification state
+  const [leaseVerification, setLeaseVerification] = useState(null);
+  const [verifyingLease, setVerifyingLease] = useState(false);
+  const [leaseVerificationError, setLeaseVerificationError] = useState('');
+  
+  // Drag and drop state
+  const [isDragOver, setIsDragOver] = useState(false);
+  const [isProofDragOver, setIsProofDragOver] = useState(false);
 
   // Tenant suggestions state
   const [tenantSuggestions, setTenantSuggestions] = useState([]);
@@ -93,11 +102,16 @@ const AddTenant = () => {
     searchExistingTenants();
   }, [debouncedName, debouncedEmail, debouncedPhone]);
 
-  const handleTenantDataChange = (field, value) => {
+  const handleTenantDataChange = async (field, value) => {
     setTenantData(prev => ({ ...prev, [field]: value }));
     // Clear any existing errors for this field
     if (errors[field]) {
       setErrors(prev => ({ ...prev, [field]: '' }));
+    }
+    
+    // Re-verify lease document if tenant name changed and lease document exists
+    if (field === 'name' && value && value.trim() && reviewData.lease_agreement) {
+      await verifyLeaseDocument(reviewData.lease_agreement, value);
     }
   };
 
@@ -153,42 +167,179 @@ const AddTenant = () => {
     setRatings(prev => ({ ...prev, [category]: rating }));
   };
 
-  const handleFileUpload = (event) => {
+  const handleFileUpload = async (event) => {
     const file = event.target.files[0];
     if (file) {
-      // Validate file type
-      const allowedTypes = ['image/jpeg', 'image/png', 'image/jpg', 'application/pdf'];
+      // Validate file type - only PDF and Word docs for lease verification
+      const allowedTypes = ['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/msword'];
       if (!allowedTypes.includes(file.type)) {
         setErrors(prev => ({ 
           ...prev, 
-          lease_agreement: 'Please upload a valid image file (JPG, PNG) or PDF document.' 
+          lease_agreement: 'Please upload a PDF or Word document only for lease verification.' 
         }));
         return;
       }
       
-      // Validate file size (max 5MB)
-      if (file.size > 5 * 1024 * 1024) {
+      // Validate file size (max 10MB)
+      if (file.size > 10 * 1024 * 1024) {
         setErrors(prev => ({ 
           ...prev, 
-          lease_agreement: 'File size must be less than 5MB.' 
+          lease_agreement: 'File size must be less than 10MB.' 
         }));
         return;
       }
       
       setReviewData(prev => ({ ...prev, lease_agreement: file }));
       setErrors(prev => ({ ...prev, lease_agreement: '' }));
+      setLeaseVerificationError('');
+      setLeaseVerification(null);
       
-      // Simulate upload progress
-      setUploadProgress(0);
-      const interval = setInterval(() => {
-        setUploadProgress(prev => {
-          if (prev >= 100) {
-            clearInterval(interval);
-            return 100;
+      // Auto-verify the lease document if tenant name is available
+      if (tenantData.name && tenantData.name.trim()) {
+        console.log('🔍 Auto-verifying lease for tenant:', tenantData.name);
+        await verifyLeaseDocument(file, tenantData.name);
+      } else {
+        console.log('⚠️ Tenant name not available, verification will happen on submit');
+      }
+    }
+  };
+
+  // Drag and drop handlers
+  const handleDragOver = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragOver(true);
+  };
+
+  const handleDragLeave = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragOver(false);
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragOver(false);
+    
+    const files = e.dataTransfer.files;
+    if (files.length > 0) {
+      const file = files[0];
+      // Create a synthetic event to reuse handleFileUpload logic
+      const syntheticEvent = {
+        target: {
+          files: [file]
+        }
+      };
+      handleFileUpload(syntheticEvent);
+    }
+  };
+
+  // Proof files drag and drop handlers
+  const handleProofDragOver = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsProofDragOver(true);
+  };
+
+  const handleProofDragLeave = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsProofDragOver(false);
+  };
+
+  const handleProofDrop = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsProofDragOver(false);
+    
+    const files = Array.from(e.dataTransfer.files);
+    if (files.length > 0) {
+      // Create a synthetic event to reuse handleProofFileUpload logic
+      const syntheticEvent = {
+        target: {
+          files: files
+        }
+      };
+      handleProofFileUpload(syntheticEvent);
+    }
+  };
+
+  // Lease verification function
+  const verifyLeaseDocument = async (file, tenantName) => {
+    console.log('🔍 === ADDTENANT LEASE VERIFICATION DEBUG START ===');
+    console.log('📁 File:', file?.name, file?.type, file?.size);
+    console.log('👤 Tenant Name:', tenantName);
+    
+    if (!file || !tenantName) {
+      console.log('❌ Missing file or tenant name, aborting verification');
+      return;
+    }
+    
+    setVerifyingLease(true);
+    setLeaseVerificationError('');
+    
+    const formData = new FormData();
+    formData.append('lease_document', file);
+    formData.append('tenant_name', tenantName);
+    
+    try {
+      const user = JSON.parse(localStorage.getItem('rently_user') || '{}');
+      const token = user.token;
+      console.log('🔑 Auth User:', user?.name || 'NO USER');
+      console.log('🔑 Auth Token:', token ? `${token.substring(0, 20)}...` : 'NO TOKEN');
+      
+      console.log('📤 Making API request to:', 'http://localhost:8000/api/verify-lease');
+      const response = await fetch('http://localhost:8000/api/verify-lease', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
+        body: formData
+      });
+      
+      console.log('📥 Response Status:', response.status, response.statusText);
+      console.log('📥 Response Headers:', Object.fromEntries(response.headers.entries()));
+      
+      const data = await response.json();
+      console.log('📥 Response Data:', data);
+      
+      if (response.ok) {
+        console.log('✅ API SUCCESS!');
+        console.log('🧐 Verification Details:', data.verification);
+        setLeaseVerification(data.verification);
+        if (!data.verification.is_valid) {
+          console.log('❌ Verification FAILED - Reason Analysis:');
+          console.log('  - Landlord Match:', data.verification.landlord_match);
+          console.log('  - Tenant Match:', data.verification.tenant_match);
+          console.log('  - Confidence Score:', data.verification.confidence_score);
+          console.log('  - Reasons:', data.verification.reasons);
+          
+          // Set specific error messages based on what failed
+          if (!data.verification.landlord_match) {
+            setLeaseVerificationError('Landlord name does not match your account name');
+          } else if (!data.verification.tenant_match) {
+            setLeaseVerificationError('Tenant name does not match the name you entered');
+          } else if (data.verification.confidence_score <= 60) {
+            setLeaseVerificationError('Document does not appear to be a valid lease agreement or image quality is too poor');
+          } else {
+            setLeaseVerificationError('Lease document verification failed');
           }
-          return prev + 10;
-        });
-      }, 100);
+        } else {
+          console.log('✅ Verification SUCCESS! All checks passed.');
+        }
+      } else {
+        console.log('❌ API ERROR:', response.status, response.statusText);
+        console.log('❌ Error Details:', data);
+        setLeaseVerificationError(data.error || 'Failed to verify lease document');
+      }
+    } catch (error) {
+      console.error('🚫 NETWORK/PARSE ERROR:', error);
+      console.error('Error Details:', error.message, error.stack);
+      setLeaseVerificationError('Failed to connect to verification service');
+    } finally {
+      setVerifyingLease(false);
+      console.log('🏁 === ADDTENANT LEASE VERIFICATION DEBUG END ===');
     }
   };
 
@@ -305,6 +456,13 @@ const AddTenant = () => {
       newErrors.rental_period = 'Rental period is required';
     }
     
+    // Validate lease document verification
+    if (!reviewData.lease_agreement) {
+      newErrors.lease_agreement = 'Lease document is required for verification';
+    } else if (!leaseVerification || !leaseVerification.is_valid) {
+      newErrors.lease_agreement = leaseVerificationError || 'Lease document must be verified before submission';
+    }
+    
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -319,11 +477,11 @@ const AddTenant = () => {
     setSubmitting(true);
     
     try {
-      // Step 1: Create the tenant
+      // Create tenant
       const tenantResponse = await tenantAPI.createTenant(tenantData);
       const newTenant = tenantResponse.data.data; // Fix: access nested data
       
-      // Step 2: Submit the review for the newly created tenant
+      // Step 3: Submit the review for the newly created tenant
       const reviewFormData = new FormData();
       
       // Calculate overall rating as average of detailed ratings
@@ -344,10 +502,7 @@ const AddTenant = () => {
         reviewFormData.append(category, ratings[category]);
       });
       
-      // Add lease agreement if provided
-      if (reviewData.lease_agreement) {
-        reviewFormData.append('lease_agreement', reviewData.lease_agreement);
-      }
+      // Lease agreement is only used for verification, not stored in reviews
       
       // Add proof files if provided
       if (reviewData.proof_files.length > 0) {
@@ -613,9 +768,19 @@ const AddTenant = () => {
           {/* Lease Agreement Upload */}
           <div className="mb-8">
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Lease Agreement (Optional)
+              Lease Agreement <span className="text-red-500">*</span>
+              <span className="text-sm text-gray-500 ml-2">(Required for verification)</span>
             </label>
-            <div className="border-2 border-dashed border-gray-300 rounded-lg p-6">
+            <div 
+              className={`border-2 border-dashed rounded-lg p-6 transition-colors ${
+                isDragOver 
+                  ? 'border-primary-400 bg-primary-50' 
+                  : 'border-gray-300 hover:border-gray-400'
+              }`}
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
+            >
               <div className="text-center">
                 <svg className="mx-auto h-12 w-12 text-gray-400 mb-4" stroke="currentColor" fill="none" viewBox="0 0 48 48">
                   <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
@@ -627,13 +792,13 @@ const AddTenant = () => {
                       id="lease-upload"
                       type="file"
                       className="sr-only"
-                      accept=".jpg,.jpeg,.png,.pdf"
+                      accept=".pdf,.docx,.doc"
                       onChange={handleFileUpload}
                     />
                   </label>
                   <p className="pl-1">or drag and drop</p>
                 </div>
-                <p className="text-xs text-gray-500">PNG, JPG, PDF up to 5MB</p>
+                <p className="text-xs text-gray-500">PDF or Word documents up to 10MB</p>
               </div>
               
               {uploadProgress > 0 && uploadProgress < 100 && (
@@ -645,11 +810,69 @@ const AddTenant = () => {
               )}
               
               {reviewData.lease_agreement && (
-                <div className="mt-4 text-sm text-gray-600">
-                  ✓ File uploaded: {reviewData.lease_agreement.name}
+                <div className="mt-4">
+                  <div className="text-sm text-gray-600 mb-2">
+                    ✓ File uploaded: {reviewData.lease_agreement.name}
+                  </div>
+                  
+                  {/* Verification Status */}
+                  {verifyingLease && (
+                    <div className="flex items-center space-x-2 text-sm text-blue-600">
+                      <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="m4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      <span>Verifying lease document...</span>
+                    </div>
+                  )}
+                  
+                  {!verifyingLease && leaseVerification && (
+                    <div className={`p-3 rounded-md text-sm ${
+                      leaseVerification.is_valid 
+                        ? 'bg-green-50 text-green-800 border border-green-200'
+                        : 'bg-red-50 text-red-800 border border-red-200'
+                    }`}>
+                      {leaseVerification.is_valid ? (
+                        <div className="flex items-center space-x-2">
+                          <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                          </svg>
+                          <span>✅ Lease document verified successfully!</span>
+                        </div>
+                      ) : (
+                        <div>
+                          <div className="flex items-center space-x-2 mb-2">
+                            <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                            </svg>
+                            <span>❌ Verification Failed</span>
+                          </div>
+                          <div className="text-xs space-y-1">
+                            {!leaseVerification.landlord_match && (
+                              <div>• Landlord name does not match your account</div>
+                            )}
+                            {!leaseVerification.tenant_match && (
+                              <div>• Tenant name does not match the entered name</div>
+                            )}
+                            {leaseVerification.confidence_score <= 60 && (
+                              <div>• Document does not appear to be a valid lease agreement</div>
+                            )}
+                            <div className="mt-2 font-medium">Confidence Score: {leaseVerification.confidence_score}%</div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               )}
             </div>
+            
+            {/* Show specific error message */}
+            {leaseVerificationError && (
+              <div className="mt-2 p-3 bg-red-50 border border-red-200 rounded-md text-sm text-red-800">
+                {leaseVerificationError}
+              </div>
+            )}
             {errors.lease_agreement && <p className="mt-1 text-sm text-red-600">{errors.lease_agreement}</p>}
           </div>
 
@@ -659,7 +882,16 @@ const AddTenant = () => {
               Evidence/Proof Files (Optional)
               <span className="text-gray-500 text-sm ml-2">Images, videos, court documents, etc.</span>
             </label>
-            <div className="border-2 border-dashed border-gray-300 rounded-lg p-6">
+            <div 
+              className={`border-2 border-dashed rounded-lg p-6 transition-colors ${
+                isProofDragOver 
+                  ? 'border-primary-400 bg-primary-50' 
+                  : 'border-gray-300 hover:border-gray-400'
+              }`}
+              onDragOver={handleProofDragOver}
+              onDragLeave={handleProofDragLeave}
+              onDrop={handleProofDrop}
+            >
               <div className="text-center">
                 <svg className="mx-auto h-12 w-12 text-gray-400 mb-4" stroke="currentColor" fill="none" viewBox="0 0 48 48">
                   <path d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h36v-4a2 2 0 00-2-2H8a2 2 0 00-2 2v4zM6 20v16a2 2 0 002 2h32a2 2 0 002-2V20H6z" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
@@ -760,7 +992,7 @@ const AddTenant = () => {
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                   </svg>
-                  Adding Tenant...
+                  Verifying Lease & Adding Tenant...
                 </div>
               ) : (
                 'Add Tenant & Submit Review'
