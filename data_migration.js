@@ -270,15 +270,23 @@ function generateLandlordInserts() {
 function generateTenantInserts() {
   const tenants = Object.values(mockTenants);
   
-  let sql = "-- Insert tenants\nINSERT INTO tenants (id, name, email, phone_number, role, profile_picture, average_rating, total_reviews) VALUES\n";
+  // Add new columns for the extra attributes
+  let sql = "-- Insert tenants\nINSERT INTO tenants (id, name, email, phone_number, role, profile_picture, average_rating, total_reviews, creditScoreLabel, bankruptcyReport) VALUES\n";
+  const creditLabels = ['Good', 'Mediocre', 'Bad'];
+  let creditIndex = 0;
+  let bankruptcyToggle = false;
   
-  const values = tenants.map(tenant => {
+  const values = tenants.map((tenant, i) => {
     const email = tenant.email ? `'${tenant.email}'` : 'NULL';
     const phone = tenant.phone_number ? `'${tenant.phone_number}'` : 'NULL';
     const profilePicture = tenant.profile_picture ? `'${tenant.profile_picture}'` : 'NULL';
     const totalReviews = tenant.reviews_received ? tenant.reviews_received.length : 0;
-    
-    return `(${tenant.id}, '${tenant.name}', ${email}, ${phone}, '${tenant.role}', ${profilePicture}, ${tenant.average_rating}, ${totalReviews})`;
+    // Cycle through all possible combinations
+    const creditScoreLabel = `'${creditLabels[creditIndex % creditLabels.length]}'`;
+    const bankruptcyReport = bankruptcyToggle ? 'TRUE' : 'FALSE';
+    creditIndex++;
+    bankruptcyToggle = !bankruptcyToggle;
+    return `(${tenant.id}, '${tenant.name}', ${email}, ${phone}, '${tenant.role}', ${profilePicture}, ${tenant.average_rating}, ${totalReviews}, ${creditScoreLabel}, ${bankruptcyReport})`;
   });
   
   sql += values.join(',\n') + ';\n\n';

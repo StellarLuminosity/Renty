@@ -28,7 +28,10 @@ const collections = {
           role: { enum: ["landlord"] },
           profile_picture: { bsonType: ["string", "null"] },
           created_at: { bsonType: "date" },
-          updated_at: { bsonType: "date" }
+          updated_at: { bsonType: "date" },
+          // Optional fields for credit score and bankruptcy status (for future use)
+creditScore: { bsonType: ["number", "null"] },
+bankruptcyReport: { bsonType: ["bool", "null"] }
         }
       }
     },
@@ -192,7 +195,9 @@ const sampleData = {
       average_rating: 4.5,
       total_reviews: 2,
       created_at: new Date("2023-01-20"),
-      updated_at: new Date("2023-12-15")
+      updated_at: new Date("2023-12-15"),
+      creditScoreLabel: "Good",
+      bankruptcyReport: false
     },
     {
       name: "Bob Thompson",
@@ -203,7 +208,9 @@ const sampleData = {
       average_rating: 4.2,
       total_reviews: 3,
       created_at: new Date("2021-09-01"),
-      updated_at: new Date("2023-02-28")
+      updated_at: new Date("2023-02-28"),
+      creditScoreLabel: "Mediocre",
+      bankruptcyReport: true
     },
     {
       name: "Carol Davis",
@@ -214,7 +221,9 @@ const sampleData = {
       average_rating: 4.4,
       total_reviews: 1,
       created_at: new Date("2023-04-01"),
-      updated_at: new Date("2024-03-15")
+      updated_at: new Date("2024-03-15"),
+      creditScoreLabel: "Bad",
+      bankruptcyReport: true
     },
     {
       name: "David Brown",
@@ -225,7 +234,9 @@ const sampleData = {
       average_rating: 0,
       total_reviews: 0,
       created_at: new Date("2024-01-10"),
-      updated_at: new Date("2024-01-10")
+      updated_at: new Date("2024-01-10"),
+      creditScoreLabel: "Bad",
+      bankruptcyReport: false
     }
   ]
 };

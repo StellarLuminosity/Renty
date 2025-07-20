@@ -198,6 +198,39 @@ const Profile = () => {
                   </span>
                 </div>
               </div>
+
+              {/* --- Hackathon Feature: Credit Score & Bankruptcy Report --- */}
+              <div className="flex items-center space-x-6 mt-4">
+                <div className="flex items-center space-x-2">
+                  <span className="font-medium text-gray-700">Credit Rating:</span>
+                  <span className={
+                    profile.creditScoreLabel === 'Good' ? 'text-green-700 font-bold' :
+                    profile.creditScoreLabel === 'Bad' ? 'text-red-700 font-bold' :
+                    'text-yellow-700 font-bold'
+                  }>
+                    {profile.creditScoreLabel ?? 'N/A'}
+                  </span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <span className="font-medium text-gray-700">Bankruptcy Report:</span>
+                  <span className={profile.bankruptcyReport ? 'text-red-600 font-bold' : 'text-green-600 font-bold'}>
+                    {profile.bankruptcyReport ? 'Filed' : 'None'}
+                  </span>
+                </div>
+              </div>
+              {/*
+                // Example: How you would fetch these fields from an external API
+                // (Requires partnership/recognition with a credit bureau or financial org)
+                // useEffect(() => {
+                //   async function fetchCreditData() {
+                //     const response = await fetch('https://external-credit-api.com/score?tenantId=' + profile._id);
+                //     const data = await response.json();
+                //     setCreditScore(data.creditScore);
+                //     setBankruptcyReport(data.bankruptcyReport);
+                //   }
+                //   fetchCreditData();
+                // }, [profile._id]);
+              */}
             </div>
           </div>
 

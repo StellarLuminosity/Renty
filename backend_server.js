@@ -258,6 +258,40 @@ app.get('/api/tenants/:id', authenticateToken, async (req, res) => {
     // Add reviews to tenant object
     tenant.reviews_received = reviews;
 
+    // --- Hackathon Feature: Abstracted credit score & randomized per tenant ---
+    // Use a deterministic pseudo-random approach so the result is consistent per tenant
+    function hashString(str) {
+      let hash = 0;
+      for (let i = 0; i < str.length; i++) {
+        hash = ((hash << 5) - hash) + str.charCodeAt(i);
+        hash |= 0; // Convert to 32bit integer
+      }
+      return Math.abs(hash);
+    }
+    const uniqueKey = tenant.email || tenant.name || tenant._id?.toString() || Math.random().toString();
+    const hash = hashString(uniqueKey);
+    const creditScoreOptions = ['Good', 'Mediocre', 'Bad'];
+    const creditScoreLabel = creditScoreOptions[hash % creditScoreOptions.length];
+    const bankruptcyReport = (hash % 2) === 0;
+    tenant.creditScoreLabel = creditScoreLabel;
+    tenant.bankruptcyReport = bankruptcyReport;
+
+    /*
+    // Example: How you would fetch this from an external API in production
+    // (Requires partnership/recognition with a credit bureau or financial org)
+    // const externalApiResponse = await fetchCreditScoreAndBankruptcy(tenant);
+    // tenant.creditScoreLabel = externalApiResponse.ratingLabel; // e.g. 'Good', 'Mediocre', 'Bad'
+    // tenant.bankruptcyReport = externalApiResponse.bankruptcyReport;
+    */
+
+    /*
+    // Example: How you would fetch this from an external API in production
+    // (Requires partnership/recognition with a credit bureau or financial org)
+    // const externalApiResponse = await fetchCreditScoreAndBankruptcy(tenant);
+    // tenant.creditScoreLabel = externalApiResponse.ratingLabel; // e.g. 'Good', 'Mediocre', 'Bad'
+    // tenant.bankruptcyReport = externalApiResponse.bankruptcyReport;
+    */
+
     res.json({ data: tenant });
 
   } catch (error) {
