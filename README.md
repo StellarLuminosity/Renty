@@ -1,223 +1,176 @@
-# Rently Frontend MVP
+# RentEZ - Landlord Tenant Review Platform
 
-A React-based tenant and landlord review platform that helps build trust in the rental community.
+A full-stack web application that allows landlords to create comprehensive tenant reviews, helping property owners make informed decisions when screening potential tenants.
 
 ## 🚀 Features
 
-- **User Authentication**: Phone number-based login with role selection (Tenant/Landlord)
-- **Profile Management**: Upload profile pictures and view personal profiles
-- **User Search**: Find and browse other users by name
-- **Review System**: Leave detailed ratings and comments for landlords/tenants
-- **Rating Categories**: Role-specific rating criteria for comprehensive reviews
-- **File Upload**: Support for lease agreement uploads
-- **Responsive Design**: Clean, modern UI with Tailwind CSS
+- **Tenant Management**: Add new tenants with contact information
+- **Comprehensive Reviews**: Rate tenants on multiple criteria (rent payments, lease completion, communication, property care, legal disputes)
+- **File Uploads**: Upload lease agreements and evidence files (images, videos, PDFs)
+- **Search & Filter**: Find tenants by name with instant search
+- **User Authentication**: Secure JWT-based login system
+- **Modern UI**: Clean, responsive design with React components
+- **Star Ratings**: Visual rating system for easy review display
 
 ## 🛠️ Tech Stack
 
-- **Frontend**: React 18 with functional components and hooks
-- **Routing**: React Router v6+
-- **Styling**: Tailwind CSS with custom components
-- **HTTP Client**: Axios for API calls
-- **State Management**: React Context API for authentication
-- **File Handling**: Native file upload with validation
+**Frontend:**
+- React 18 with functional components and hooks
+- React Router for navigation
+- Axios for API calls
+- CSS3 with modern styling
+- File upload with drag & drop
+
+**Backend:**
+- Node.js with Express.js
+- MongoDB with native driver
+- JWT authentication
+- Multer for file uploads
+- CORS enabled for cross-origin requests
+
+## 📋 Prerequisites
+
+- Node.js (v14 or higher)
+- npm or yarn
+- MongoDB (local installation or MongoDB Atlas)
+
+## 🚀 Quick Start
+
+### 1. Clone the Repository
+```bash
+git clone https://github.com/YourUsername/RentEZ.git
+cd RentEZ
+```
+
+### 2. Install Dependencies
+
+**Frontend:**
+```bash
+npm install
+```
+
+**Backend:**
+```bash
+npm install express mongodb jsonwebtoken bcryptjs cors multer dotenv
+```
+
+### 3. Environment Setup
+
+Create a `.env` file in the root directory:
+```env
+MONGODB_URI=mongodb://localhost:27017/rentez
+JWT_SECRET=your-super-secret-jwt-key-here
+PORT=8000
+```
+
+### 4. Start MongoDB
+
+Make sure MongoDB is running on your system:
+```bash
+# macOS with Homebrew
+brew services start mongodb/brew/mongodb-community
+
+# Or if using MongoDB Atlas, use your connection string in MONGODB_URI
+```
+
+### 5. Start the Applications
+
+**Terminal 1 - Backend:**
+```bash
+node backend_server.js
+```
+
+**Terminal 2 - Frontend:**
+```bash
+npm start
+```
+
+### 6. Access the Application
+
+- Frontend: http://localhost:3000
+- Backend API: http://localhost:8000
+
+## 📚 API Endpoints
+
+### Authentication
+- `POST /api/signup` - Register new landlord
+- `POST /api/login` - Login landlord
+
+### Tenants
+- `GET /api/tenants/search?name=<name>` - Search tenants
+- `GET /api/tenants/:id` - Get tenant details
+- `POST /api/tenants` - Create new tenant
+
+### Reviews
+- `POST /api/reviews` - Submit tenant review
+
+### System
+- `GET /api/health` - Health check
+
+## 🎯 Usage
+
+1. **Sign Up**: Create a landlord account
+2. **Login**: Access your dashboard
+3. **Add Tenant**: Create new tenant profiles with their first review
+4. **Leave Reviews**: Add additional reviews for existing tenants
+5. **Search**: Find tenants using the search functionality
+6. **View Details**: See comprehensive tenant profiles with all reviews
 
 ## 📁 Project Structure
 
 ```
-src/
-├── components/           # Reusable UI components
-│   ├── Navbar.jsx       # Navigation bar
-│   ├── UserCard.jsx     # User display card
-│   └── ReviewStars.jsx  # Star rating components
-├── pages/               # Page components
-│   ├── Login.jsx        # Simple login page
-│   ├── Signup.jsx       # Account creation page
-│   ├── Dashboard.jsx    # User search and discovery
-│   ├── Profile.jsx      # User profile view
-│   ├── LeaveReview.jsx  # Review submission form
-│   ├── ReviewConfirmation.jsx # Review success page
-│   └── NotFound.jsx     # 404 error page
-├── hooks/               # Custom React hooks
-│   └── useAuth.js       # Authentication hook
-├── utils/               # Utility functions
-│   └── api.js           # API calls and endpoints
-├── App.jsx              # Main app component
-└── index.js             # App entry point
+RentEZ/
+├── public/                 # Static assets
+├── src/
+│   ├── components/         # Reusable React components
+│   ├── pages/             # Page components
+│   ├── utils/             # Utility functions (API calls)
+│   └── App.jsx            # Main app component
+├── backend_server.js      # Express server
+├── mongodb_schema.js      # Database schema definitions
+└── README.md             # This file
 ```
 
-## 🏗️ Rating System
+## 🔧 Development
 
-### Tenant Reviewing Landlord:
-- Responsiveness to repair requests
-- Respect tenant rights
-- Friendliness
-- Property condition
-- Property as advertised
-- Conflict resolution
+### Key Components
+- `AddTenant.jsx` - Add new tenants with reviews
+- `LeaveReview.jsx` - Add reviews for existing tenants
+- `Dashboard.jsx` - Main landlord dashboard
+- `SearchTenants.jsx` - Tenant search functionality
 
-### Landlord Reviewing Tenant:
-- On-time rent payments
-- Lease completion
-- Communication/respect
-- Before vs after condition of place
-- No legal disputes filed
+### Database Schema
+- **landlords** - User accounts with authentication
+- **tenants** - Tenant profiles and contact information  
+- **reviews** - Detailed tenant reviews with ratings
 
-## 🚦 Getting Started
+## 🚨 Troubleshooting
 
-### Prerequisites
-- Node.js (v16 or higher)
-- npm or yarn
+**MongoDB Connection Issues:**
+- Ensure MongoDB is running
+- Check your `MONGODB_URI` in `.env`
+- For MongoDB Atlas, whitelist your IP address
 
-### Installation
+**Authentication Errors:**
+- Verify `JWT_SECRET` is set in `.env`
+- Check token expiration (24h default)
 
-1. **Install dependencies:**
-   ```bash
-   npm install
-   ```
+**File Upload Issues:**
+- Check file size limits (5MB for images, 50MB total)
+- Ensure upload directory permissions
 
-2. **Start the development server:**
-   ```bash
-   npm start
-   ```
+## 📄 License
 
-3. **Open your browser:**
-   Navigate to `http://localhost:3000`
+This project is licensed under the MIT License.
 
-### Available Scripts
+## 🤝 Contributing
 
-- `npm start` - Runs the app in development mode
-- `npm build` - Builds the app for production
-- `npm test` - Launches the test runner
-
-## 🔗 Backend Integration
-
-The frontend is designed to connect to a Django REST API backend. All API calls are located in `src/utils/api.js` with placeholder implementations.
-
-### API Endpoints Expected:
-- `POST /api/login` - User authentication
-- `GET /api/search?name=` - Search users
-- `GET /api/profile/:id` - Get user profile
-- `POST /api/review` - Submit review
-- `GET /api/profile` - Get current user profile
-
-## 🎨 UI Components
-
-### Custom Tailwind Classes:
-- `.btn-primary` - Primary action buttons
-- `.btn-secondary` - Secondary action buttons
-- `.input-field` - Form input styling
-- `.card` - Card container styling
-
-## 📱 Mobile Responsive
-
-The application is fully responsive and optimized for:
-- Desktop (1024px+)
-- Tablet (768px - 1023px)
-- Mobile (320px - 767px)
-
-## 📱 Page Structure
-
-1. **Login Page** (`/login`)
-   - Simple login with phone number and password
-   - Input validation and error handling
-   - Loading states during authentication
-   - Link to signup page for new users
-
-2. **Signup Page** (`/signup`)
-   - Account creation with full name, phone number
-   - Password and confirm password fields
-   - Role selection (Tenant/Landlord)
-   - Optional profile picture upload
-   - Comprehensive form validation
-
-3. **Dashboard** (`/dashboard`)
-   - User search functionality
-   - Browse users by role
-   - Quick search by phone number
-   - Responsive card-based layout
-
-4. **Profile Pages** (`/profile/:id`)
-   - Display user information and reviews
-   - Average rating display
-   - Review history
-   - "Leave Review" action button
-
-5. **Leave Review** (`/leave-review/:id`)
-   - Comprehensive review form
-   - Multiple rating categories
-   - File upload for evidence
-   - Form validation and progress indication
-
-6. **Review Confirmation** (`/review-confirmation`)
-   - Success confirmation
-   - Review summary display
-   - Navigation back to dashboard
-
-7. **404 Not Found** (`*`)
-   - User-friendly error page
-   - Navigation options to get back on track
-
-## 🔐 Authentication Flow
-
-### Login Flow
-1. Existing users enter phone number and password
-2. Credentials validated against mock API
-3. Successful login stores user data in localStorage
-4. Redirect to dashboard
-
-### Signup Flow
-1. New users provide full name, phone number, and password
-2. Role selection (Tenant/Landlord)
-3. Optional profile picture upload
-4. Account creation via mock API
-5. Automatic login after successful signup
-6. Redirect to dashboard
-
-### Security Features
-- Protected routes require authentication
-- Public routes redirect authenticated users to dashboard
-- Logout clears user data and redirects to login
-- Form validation and error handling on all auth pages
-
-### File Upload
-- Support for images (profile pictures)
-- Support for PDFs and images (lease agreements)
-- File size validation (5MB for profile pics, 10MB for documents)
-- Upload progress indicators
-
-### Form Validation
-- Phone number format validation
-- Required field checking
-- File type and size validation
-- Real-time error feedback
-
-### Review System
-- Dynamic rating categories based on user roles
-- 5-star rating system with interactive stars
-- Optional comment field (500 character limit)
-- Review confirmation and summary
-
-## 🚧 Development Notes
-
-- All API calls currently use mock data for development
-- localStorage is used for user session persistence
-- Error boundaries and loading states implemented
-- Form validation includes client-side checks
-- Responsive design follows mobile-first approach
-
-## 🔄 Future Enhancements
-
-- Real backend API integration
-- User notifications system
-- Advanced search filters
-- Review moderation features
-- Email/SMS verification
-- Social sharing capabilities
+1. Fork the project
+2. Create a feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
 
 ## 📞 Support
 
-For questions or issues, please contact the development team or create an issue in the project repository.
-
----
-
-Built with ❤️ for the Rently community
+For support, please open an issue on GitHub or contact the development team.
