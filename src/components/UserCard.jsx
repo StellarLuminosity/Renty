@@ -52,7 +52,7 @@ const UserCard = ({ user }) => {
 
             {/* View Profile Button */}
             <Link
-              to={`/profile/${user.id}`}
+              to={`/profile/${user._id}`}
               className="btn-primary"
             >
               View Profile

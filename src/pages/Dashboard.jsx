@@ -1,31 +1,38 @@
 import React, { useState, useEffect } from 'react';
-import { userAPI } from '../utils/api';
+import { useNavigate } from 'react-router-dom';
+import { tenantAPI } from '../utils/api';
+import useAuth from '../hooks/useAuth';
 import UserCard from '../components/UserCard';
 
 const Dashboard = () => {
+  const navigate = useNavigate();
+  const { user } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
-  const [users, setUsers] = useState([]);
+  const [tenants, setTenants] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [hasSearched, setHasSearched] = useState(false);
 
   useEffect(() => {
-    // Load initial users on component mount
-    loadUsers();
-  }, []);
+    // Load initial tenants on component mount - only if user is authenticated
+    if (user?.token) {
+      loadTenants();
+    }
+  }, [user]);
 
-  const loadUsers = async (query = '') => {
+  const loadTenants = async (query = '') => {
     setLoading(true);
     setError('');
     
     try {
-      const response = await userAPI.searchUsers(query);
-      setUsers(response.data.results || []);
+      const response = await tenantAPI.searchTenants(query);
+      setTenants(response.data || []);
       setHasSearched(true);
+      
     } catch (err) {
-      console.error('Error loading users:', err);
-      setError('Failed to load users. Please try again.');
-      setUsers([]);
+      console.error('Error loading tenants:', err);
+      setError(err.message || 'Failed to load tenants');
+      setTenants([]);
     } finally {
       setLoading(false);
     }
@@ -33,16 +40,16 @@ const Dashboard = () => {
 
   const handleSearch = async (e) => {
     e.preventDefault();
-    await loadUsers(searchQuery);
+    await loadTenants(searchQuery);
   };
 
   const handleSearchInputChange = (e) => {
     const value = e.target.value;
     setSearchQuery(value);
     
-    // If search is cleared, load all users
+    // If search is cleared, load all tenants
     if (value.trim() === '') {
-      loadUsers();
+      loadTenants();
     }
   };
 
@@ -51,10 +58,10 @@ const Dashboard = () => {
       {/* Header */}
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900 mb-2">
-          Find Tenants & Landlords
+          Find & Review Tenants
         </h1>
         <p className="text-gray-600">
-          Search for and view profiles of other Rently users to see their reviews and ratings.
+          Search for tenants to review their rental history, or add new tenants to the system.
         </p>
       </div>
 
@@ -87,7 +94,7 @@ const Dashboard = () => {
                   type="text"
                   value={searchQuery}
                   onChange={handleSearchInputChange}
-                  placeholder="Search by name..."
+                  placeholder="Search tenant by name..."
                   className="input-field pl-10"
                 />
               </div>
@@ -138,55 +145,74 @@ const Dashboard = () => {
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
               </svg>
-              <p className="text-gray-600">Loading users...</p>
+              <p className="text-sm text-gray-600">Loading tenants...</p>
             </div>
           </div>
-        ) : users.length > 0 ? (
+        ) : tenants.length > 0 ? (
           <>
             <div className="mb-6">
               <h2 className="text-xl font-semibold text-gray-900 mb-2">
-                {searchQuery.trim() ? `Search Results for "${searchQuery}"` : 'All Users'}
+                {searchQuery.trim() ? `Search Results for "${searchQuery}"` : 'All Tenants'}
               </h2>
               <p className="text-gray-600">
-                {users.length} user{users.length !== 1 ? 's' : ''} found
+                {tenants.length} tenant{tenants.length !== 1 ? 's' : ''} found
               </p>
             </div>
             
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-              {users.map((user) => (
-                <UserCard key={user.id} user={user} />
+              {tenants.map((tenant) => (
+                <UserCard key={tenant._id} user={tenant} />
               ))}
             </div>
           </>
-        ) : hasSearched ? (
+        ) : hasSearched && searchQuery.trim() ? (
           <div className="text-center py-12">
             <svg className="mx-auto h-12 w-12 text-gray-400 mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
             </svg>
-            <h3 className="text-lg font-medium text-gray-900 mb-2">No users found</h3>
-            <p className="text-gray-600 mb-4">
-              {searchQuery.trim() 
-                ? `No users match "${searchQuery}". Try a different search term.`
-                : 'No users available at the moment.'
-              }
+            <h3 className="text-lg font-medium text-gray-900 mb-2">No tenants found</h3>
+            <p className="text-gray-600 mb-6">
+              No tenants match "{searchQuery}". Would you like to add them as a new tenant?
             </p>
-            {searchQuery.trim() && (
+            <div className="flex flex-col sm:flex-row gap-3 justify-center">
+              <button
+                onClick={() => {
+                  // Navigate to add new tenant (review flow with tenant creation)
+                  navigate(`/add-tenant?name=${encodeURIComponent(searchQuery)}`);
+                }}
+                className="btn-primary"
+              >
+                <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                </svg>
+                Add New Tenant
+              </button>
               <button
                 onClick={() => {
                   setSearchQuery('');
-                  loadUsers();
+                  loadTenants();
                 }}
                 className="btn-secondary"
               >
                 Clear Search
               </button>
-            )}
+            </div>
+          </div>
+        ) : hasSearched ? (
+          <div className="text-center py-12">
+            <svg className="mx-auto h-12 w-12 text-gray-400 mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+            </svg>
+            <h3 className="text-lg font-medium text-gray-900 mb-2">No tenants available</h3>
+            <p className="text-gray-600 mb-4">
+              No tenants have been added to the system yet. Start by searching for a tenant name or add your first tenant review.
+            </p>
           </div>
         ) : null}
       </div>
 
       {/* Tips Section */}
-      {!loading && users.length === 0 && !hasSearched && (
+      {!loading && tenants.length === 0 && !hasSearched && (
         <div className="mt-12 bg-blue-50 border border-blue-200 rounded-lg p-6">
           <div className="flex">
             <div className="flex-shrink-0">
@@ -196,7 +222,7 @@ const Dashboard = () => {
             </div>
             <div className="ml-3">
               <h3 className="text-sm font-medium text-blue-800 mb-2">
-                Tips for using Rently
+                How to use Renty - Landlord Review System
               </h3>
               <div className="text-sm text-blue-700 space-y-1">
                 <p>• Use the search bar to find users by name</p>

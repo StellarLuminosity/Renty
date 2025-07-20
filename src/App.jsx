@@ -9,6 +9,7 @@ import Signup from './pages/Signup';
 import Dashboard from './pages/Dashboard';
 import Profile from './pages/Profile';
 import LeaveReview from './pages/LeaveReview';
+import AddTenant from './pages/AddTenant';
 import ReviewConfirmation from './pages/ReviewConfirmation';
 import NotFound from './pages/NotFound';
 
@@ -117,6 +118,16 @@ const AppRoutes = () => {
           <ProtectedRoute>
             <AppLayout>
               <LeaveReview />
+            </AppLayout>
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/add-tenant" 
+        element={
+          <ProtectedRoute>
+            <AppLayout>
+              <AddTenant />
             </AppLayout>
           </ProtectedRoute>
         } 

@@ -81,13 +81,13 @@ export const CategoryRating = ({
       
       <div className="flex items-center space-x-2">
         <ReviewStars
-          rating={rating}
+          rating={isNaN(rating) ? 5 : rating}
           interactive={true}
           onRatingChange={onRatingChange}
           size="lg"
         />
         <span className="text-sm text-gray-600 min-w-[60px]">
-          {rating > 0 ? `${rating}/5` : 'Not rated'}
+          {!isNaN(rating) && rating > 0 ? `${rating}/5` : '5/5'}
         </span>
       </div>
     </div>
@@ -107,11 +107,12 @@ export const ReviewRatingDisplay = ({ ratings, reviewerRole }) => {
       property_advertised: 'Property as Advertised',
       conflict_resolution: 'Conflict Resolution',
       
-      // Landlord reviewing tenant
-      payment_timeliness: 'On-time Rent Payments',
-      lease_completion: 'Lease Completion',
-      communication: 'Communication/Respect',
-      no_legal_disputes: 'No Legal Disputes'
+      // Landlord reviewing tenant (updated to match current categories)
+      rent_payments: 'On-time Rent Payments',
+      lease_completion: 'Lease Completion/Duration',
+      communication: 'Communication & Respect',
+      property_care: 'Property Care & Condition',
+      legal_disputes: 'Legal Disputes/Issues'
     };
     
     return categoryNames[key] || key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());

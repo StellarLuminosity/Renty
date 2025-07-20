@@ -5,11 +5,12 @@ import { authAPI } from '../utils/api';
 
 const Signup = () => {
   const [formData, setFormData] = useState({
+    email: '',
     phoneNumber: '',
     password: '',
     confirmPassword: '',
     name: '',
-    role: ''
+    role: 'landlord' // Only landlords can sign up
   });
   const [profilePicture, setProfilePicture] = useState(null);
   const [previewUrl, setPreviewUrl] = useState('');
@@ -64,6 +65,13 @@ const Signup = () => {
   const validateForm = () => {
     const newErrors = {};
     
+    // Email validation
+    if (!formData.email.trim()) {
+      newErrors.email = 'Email is required';
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email.trim())) {
+      newErrors.email = 'Please enter a valid email address';
+    }
+    
     // Phone number validation
     if (!formData.phoneNumber.trim()) {
       newErrors.phoneNumber = 'Phone number is required';
@@ -92,10 +100,7 @@ const Signup = () => {
       newErrors.name = 'Name must be at least 2 characters';
     }
     
-    // Role validation
-    if (!formData.role) {
-      newErrors.role = 'Please select your role';
-    }
+    // Role is automatically set to landlord - no validation needed
     
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -114,6 +119,7 @@ const Signup = () => {
     try {
       // Prepare signup data
       const signupData = {
+        email: formData.email.trim(),
         phone_number: formData.phoneNumber.trim(),
         password: formData.password,
         name: formData.name.trim(),
@@ -139,7 +145,7 @@ const Signup = () => {
     } catch (error) {
       console.error('Signup error:', error);
       setErrors({ 
-        general: error.response?.data?.message || 'Account creation failed. Please try again.' 
+        general: error.message || 'Account creation failed. Please try again.' 
       });
     } finally {
       setLoading(false);
@@ -152,8 +158,8 @@ const Signup = () => {
         {/* Header */}
         <div className="text-center">
           <h1 className="text-4xl font-bold text-primary-600 mb-2">Rently</h1>
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Create your account</h2>
-          <p className="text-gray-600">Join the trusted rental community</p>
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">Create Landlord Account</h2>
+          <p className="text-gray-600">Join the landlord review community</p>
         </div>
       </div>
 
@@ -188,6 +194,31 @@ const Signup = () => {
                 />
                 {errors.name && (
                   <p className="mt-1 text-sm text-red-600">{errors.name}</p>
+                )}
+              </div>
+            </div>
+
+            {/* Email Field */}
+            <div>
+              <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+                Email Address *
+              </label>
+              <div className="mt-1">
+                <input
+                  id="email"
+                  name="email"
+                  type="email"
+                  autoComplete="email"
+                  required
+                  className={`input-field ${
+                    errors.email ? 'border-red-300 focus:ring-red-500 focus:border-red-500' : ''
+                  }`}
+                  placeholder="Enter your email address"
+                  value={formData.email}
+                  onChange={handleInputChange}
+                />
+                {errors.email && (
+                  <p className="mt-1 text-sm text-red-600">{errors.email}</p>
                 )}
               </div>
             </div>
@@ -268,42 +299,16 @@ const Signup = () => {
               </div>
             </div>
 
-            {/* Role Selection */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-3">
-                I am a: *
-              </label>
-              <div className="space-y-3">
-                <label className="flex items-center">
-                  <input
-                    type="radio"
-                    name="role"
-                    value="tenant"
-                    checked={formData.role === 'tenant'}
-                    onChange={handleInputChange}
-                    className="focus:ring-primary-500 h-4 w-4 text-primary-600 border-gray-300"
-                  />
-                  <span className="ml-3 text-sm text-gray-700">
-                    🏠 Tenant (I rent properties)
-                  </span>
-                </label>
-                <label className="flex items-center">
-                  <input
-                    type="radio"
-                    name="role"
-                    value="landlord"
-                    checked={formData.role === 'landlord'}
-                    onChange={handleInputChange}
-                    className="focus:ring-primary-500 h-4 w-4 text-primary-600 border-gray-300"
-                  />
-                  <span className="ml-3 text-sm text-gray-700">
-                    🏠 Landlord (I own/manage properties)
-                  </span>
-                </label>
+            {/* Landlord Account Info */}
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <div className="flex items-center">
+                <svg className="h-5 w-5 text-blue-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <p className="text-sm text-blue-800">
+                  <strong>Landlord Account:</strong> You'll be able to search and review tenants.
+                </p>
               </div>
-              {errors.role && (
-                <p className="mt-2 text-sm text-red-600">{errors.role}</p>
-              )}
             </div>
 
             {/* Profile Picture Upload */}

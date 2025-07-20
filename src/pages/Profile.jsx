@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { userAPI } from '../utils/api';
+import { tenantAPI } from '../utils/api';
 import { useAuth } from '../hooks/useAuth';
 import ReviewStars, { ReviewRatingDisplay } from '../components/ReviewStars';
 
@@ -15,7 +15,7 @@ const Profile = () => {
 
   const loadProfile = useCallback(async () => {
     if (!id) {
-      setError('User ID is required');
+      setError('Tenant ID is required');
       setLoading(false);
       return;
     }
@@ -24,11 +24,15 @@ const Profile = () => {
     setError('');
     
     try {
-      const response = await userAPI.getUserProfile(id);
-      setProfile(response.data);
+      const response = await tenantAPI.getTenantProfile(id);
+      
+      // Handle the wrapped response - extract the actual tenant data
+      const tenantData = response.data || response;
+      
+      setProfile(tenantData);
     } catch (err) {
       console.error('Error loading profile:', err);
-      setError('Failed to load user profile. Please try again.');
+      setError('Failed to load tenant profile. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -59,17 +63,8 @@ const Profile = () => {
     });
   };
 
-  const canLeaveReview = () => {
-    // User can leave a review if:
-    // 1. They are logged in
-    // 2. They are not viewing their own profile
-    // 3. They have a different role than the profile user
-    return (
-      currentUser && 
-      currentUser.id !== parseInt(id) && 
-      currentUser.role !== profile?.role
-    );
-  };
+  // Reviews are now created through the AddTenant flow
+  // This page only displays tenant profiles with landlord reviews
 
   if (loading) {
     return (
@@ -119,8 +114,8 @@ const Profile = () => {
     return (
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="text-center py-12">
-          <h3 className="text-lg font-medium text-gray-900 mb-2">User not found</h3>
-          <p className="text-gray-600 mb-4">The user profile you're looking for doesn't exist.</p>
+          <h3 className="text-lg font-medium text-gray-900 mb-2">Tenant not found</h3>
+          <p className="text-gray-600 mb-4">The tenant profile you're looking for doesn't exist.</p>
           <Link to="/dashboard" className="btn-primary">
             Back to Dashboard
           </Link>
@@ -129,7 +124,7 @@ const Profile = () => {
     );
   }
 
-  const averageRating = calculateAverageRating(profile.reviews);
+  const averageRating = profile ? calculateAverageRating(profile.reviews_received || profile.reviews) : 0;
 
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -170,7 +165,7 @@ const Profile = () => {
             {/* Basic Info */}
             <div>
               <h1 className="text-3xl font-bold text-gray-900 mb-2">
-                {profile.name || `User ${profile.id}`}
+                {profile.name || `Tenant ${profile._id}`}
               </h1>
               
               <div className="flex items-center space-x-4 mb-3">
@@ -191,27 +186,21 @@ const Profile = () => {
                     {averageRating.toFixed(1)}
                   </span>
                   <span className="text-gray-600 ml-1">
-                    ({profile.reviews?.length || 0} review{profile.reviews?.length !== 1 ? 's' : ''})
+                    ({(profile.reviews_received || profile.reviews || []).length} landlord review{(profile.reviews_received || profile.reviews || []).length !== 1 ? 's' : ''})
                   </span>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Leave Review Button */}
-          {canLeaveReview() && (
-            <div className="mt-6 md:mt-0">
-              <Link
-                to={`/leave-review/${profile.id}`}
-                className="btn-primary inline-flex items-center"
-              >
-                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                </svg>
-                Leave Review
-              </Link>
+          {/* Info about tenant profile */}
+          <div className="mt-6 md:mt-0">
+            <div className="bg-gray-50 border border-gray-200 rounded-lg px-4 py-3">
+              <p className="text-sm text-gray-600">
+                <strong>Tenant Profile:</strong> Reviews from landlords who have rented to this tenant.
+              </p>
             </div>
-          )}
+          </div>
         </div>
       </div>
 
@@ -219,14 +208,22 @@ const Profile = () => {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <h2 className="text-2xl font-bold text-gray-900">
-            Reviews ({profile.reviews?.length || 0})
+            Landlord Reviews ({(profile.reviews_received || profile.reviews || []).length})
           </h2>
+          {currentUser && currentUser.role === 'landlord' && (
+            <button
+              onClick={() => navigate(`/leave-review/${profile._id}`)}
+              className="bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors"
+            >
+              Leave Review
+            </button>
+          )}
         </div>
 
-        {profile.reviews && profile.reviews.length > 0 ? (
+        {(profile.reviews_received || profile.reviews) && (profile.reviews_received || profile.reviews).length > 0 ? (
           <div className="space-y-6">
-            {profile.reviews.map((review) => (
-              <div key={review.id} className="card">
+            {(profile.reviews_received || profile.reviews).map((review) => (
+              <div key={review._id} className="card">
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex items-center space-x-3">
                     <div className="h-10 w-10 rounded-full bg-gray-100 flex items-center justify-center">
@@ -245,7 +242,7 @@ const Profile = () => {
                   </div>
                   
                   <div className="text-sm text-gray-500">
-                    {formatDate(review.created_at)}
+                    {formatDate(review.created_at || review.date_created)}
                   </div>
                 </div>
 
@@ -267,6 +264,56 @@ const Profile = () => {
                     <p className="text-gray-700 leading-relaxed">{review.comment}</p>
                   </div>
                 )}
+
+                {/* Proof Files */}
+                {review.proof_files && review.proof_files.length > 0 && (
+                  <div className="border-t border-gray-200 pt-4">
+                    <h4 className="text-sm font-medium text-gray-900 mb-3">
+                      Evidence/Proof Files ({review.proof_files.length})
+                    </h4>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                      {review.proof_files.map((file, index) => (
+                        <div key={index} className="border border-gray-200 rounded-lg p-3 bg-gray-50">
+                          {/* File preview */}
+                          <div className="mb-2">
+                            {file.type.startsWith('image/') && (
+                              <div className="w-full h-20 bg-gray-200 rounded flex items-center justify-center">
+                                <svg className="w-6 h-6 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                                  <path fillRule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clipRule="evenodd" />
+                                </svg>
+                              </div>
+                            )}
+                            {file.type.startsWith('video/') && (
+                              <div className="w-full h-20 bg-gray-200 rounded flex items-center justify-center">
+                                <svg className="w-6 h-6 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                                  <path fillRule="evenodd" d="M2 6a2 2 0 012-2h6a2 2 0 012 2v8a2 2 0 01-2 2H4a2 2 0 01-2-2V6zM14.553 7.106A1 1 0 0014 8v4a1 1 0 00.553.894l2 1A1 1 0 0018 13V7a1 1 0 00-1.447-.894l-2 1z" clipRule="evenodd" />
+                                </svg>
+                              </div>
+                            )}
+                            {file.type === 'application/pdf' && (
+                              <div className="w-full h-20 bg-red-50 rounded flex items-center justify-center">
+                                <svg className="w-6 h-6 text-red-500" fill="currentColor" viewBox="0 0 20 20">
+                                  <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clipRule="evenodd" />
+                                </svg>
+                              </div>
+                            )}
+                          </div>
+                          
+                          {/* File info */}
+                          <div className="text-xs text-gray-600">
+                            <p className="truncate font-medium" title={file.name}>{file.name}</p>
+                            <div className="flex justify-between items-center mt-1">
+                              <span>{(file.size / 1024 / 1024).toFixed(1)} MB</span>
+                              <span className="text-blue-600 hover:text-blue-800 cursor-pointer" title="View file">
+                                📎 View
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             ))}
           </div>
@@ -280,14 +327,14 @@ const Profile = () => {
               {profile.name || 'This user'} hasn't received any reviews yet.
             </p>
             
-            {canLeaveReview() && (
+            <div className="mt-4">
               <Link
-                to={`/leave-review/${profile.id}`}
-                className="btn-primary"
+                to="/dashboard"
+                className="btn-secondary"
               >
-                Be the first to leave a review
+                Search for other tenants
               </Link>
-            )}
+            </div>
           </div>
         )}
       </div>

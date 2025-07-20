@@ -4,7 +4,7 @@ import { useAuth } from '../hooks/useAuth';
 import { authAPI } from '../utils/api';
 
 const Login = () => {
-  const [phoneNumber, setPhoneNumber] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
@@ -22,11 +22,11 @@ const Login = () => {
   const validateForm = () => {
     const newErrors = {};
     
-    // Phone number validation
-    if (!phoneNumber.trim()) {
-      newErrors.phoneNumber = 'Phone number is required';
-    } else if (!/^\+?[\d\s\-()]{10,}$/.test(phoneNumber.trim())) {
-      newErrors.phoneNumber = 'Please enter a valid phone number';
+    // Email validation
+    if (!email.trim()) {
+      newErrors.email = 'Email is required';
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+      newErrors.email = 'Please enter a valid email address';
     }
     
     // Password validation
@@ -51,14 +51,18 @@ const Login = () => {
     setErrors({});
 
     try {
-      // Call login API with phone and password
+      // Call login API with email and password
       const response = await authAPI.login({
-        phone_number: phoneNumber.trim(),
+        email: email.trim(),
         password: password
       });
 
-      // Login success - set user data
-      login(response.data.user);
+      // Login success - set user data with token
+      const userWithToken = {
+        ...response.data.user,
+        token: response.data.token
+      };
+      login(userWithToken);
       
       // Navigate to dashboard
       navigate('/dashboard');
@@ -66,7 +70,7 @@ const Login = () => {
     } catch (error) {
       console.error('Login error:', error);
       setErrors({ 
-        general: error.response?.data?.message || 'Login failed. Please check your credentials.' 
+        general: error.message || 'Login failed. Please check your credentials.'
       });
     } finally {
       setLoading(false);
@@ -87,6 +91,7 @@ const Login = () => {
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
         <div className="bg-white py-8 px-4 shadow-lg sm:rounded-lg sm:px-10">
           <form className="space-y-6" onSubmit={handleSubmit}>
+
             {/* General Error */}
             {errors.general && (
               <div className="bg-red-50 border border-red-200 rounded-md p-3">
@@ -94,27 +99,27 @@ const Login = () => {
               </div>
             )}
 
-            {/* Phone Number Field */}
+            {/* Email Field */}
             <div>
-              <label htmlFor="phoneNumber" className="block text-sm font-medium text-gray-700">
-                Phone Number *
+              <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+                Email Address *
               </label>
               <div className="mt-1">
                 <input
-                  id="phoneNumber"
-                  name="phoneNumber"
-                  type="tel"
-                  autoComplete="tel"
+                  id="email"
+                  name="email"
+                  type="email"
+                  autoComplete="email"
                   required
                   className={`input-field ${
-                    errors.phoneNumber ? 'border-red-300 focus:ring-red-500 focus:border-red-500' : ''
+                    errors.email ? 'border-red-300 focus:ring-red-500 focus:border-red-500' : ''
                   }`}
-                  placeholder="Enter your phone number"
-                  value={phoneNumber}
-                  onChange={(e) => setPhoneNumber(e.target.value)}
+                  placeholder="Enter your email address"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
                 />
-                {errors.phoneNumber && (
-                  <p className="mt-1 text-sm text-red-600">{errors.phoneNumber}</p>
+                {errors.email && (
+                  <p className="mt-1 text-sm text-red-600">{errors.email}</p>
                 )}
               </div>
             </div>
