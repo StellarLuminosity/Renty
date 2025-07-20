@@ -48,6 +48,33 @@ const AddTenant = () => {
   const [errors, setErrors] = useState({});
   const [submitting, setSubmitting] = useState(false);
 
+  // Tenant suggestions state
+  const [tenantSuggestions, setTenantSuggestions] = useState([]);
+  const [searchingTenants, setSearchingTenants] = useState(false);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+
+  // Debounce utility
+  const useDebounce = (value, delay) => {
+    const [debouncedValue, setDebouncedValue] = useState(value);
+    
+    useEffect(() => {
+      const handler = setTimeout(() => {
+        setDebouncedValue(value);
+      }, delay);
+      
+      return () => {
+        clearTimeout(handler);
+      };
+    }, [value, delay]);
+    
+    return debouncedValue;
+  };
+
+  // Debounced tenant data for search
+  const debouncedName = useDebounce(tenantData.name, 500);
+  const debouncedEmail = useDebounce(tenantData.email, 500);
+  const debouncedPhone = useDebounce(tenantData.phone, 500);
+
   // Redirect if not authenticated or not a landlord
   useEffect(() => {
     if (!currentUser) {
@@ -61,11 +88,56 @@ const AddTenant = () => {
     }
   }, [currentUser, navigate]);
 
+  // Trigger search when tenantData changes
+  useEffect(() => {
+    searchExistingTenants();
+  }, [debouncedName, debouncedEmail, debouncedPhone]);
+
   const handleTenantDataChange = (field, value) => {
     setTenantData(prev => ({ ...prev, [field]: value }));
     // Clear any existing errors for this field
     if (errors[field]) {
       setErrors(prev => ({ ...prev, [field]: '' }));
+    }
+  };
+
+  // Search for existing tenants when 2 fields are filled
+  const searchExistingTenants = async () => {
+    // Use debounced values to avoid too many API calls
+    const name = debouncedName;
+    const email = debouncedEmail;
+    const phone = debouncedPhone;
+    
+    // Check if we have at least 2 fields filled
+    const filledFields = [name, email, phone].filter(field => field && field.trim()).length;
+    
+    if (filledFields >= 2 && name && name.trim()) {
+      setSearchingTenants(true);
+      try {
+        const response = await tenantAPI.searchTenants(name);
+        const tenants = response.data.data || [];
+        
+        // Filter tenants that match name + email OR name + phone
+        const matchingTenants = tenants.filter(tenant => {
+          const nameMatch = tenant.name?.toLowerCase() === name.toLowerCase();
+          const emailMatch = email && tenant.email && tenant.email.toLowerCase() === email.toLowerCase();
+          const phoneMatch = phone && tenant.phone_number && tenant.phone_number === phone;
+          
+          return nameMatch && (emailMatch || phoneMatch);
+        });
+        
+        setTenantSuggestions(matchingTenants);
+        setShowSuggestions(matchingTenants.length > 0);
+      } catch (error) {
+        console.error('Error searching tenants:', error);
+        setTenantSuggestions([]);
+        setShowSuggestions(false);
+      } finally {
+        setSearchingTenants(false);
+      }
+    } else {
+      setTenantSuggestions([]);
+      setShowSuggestions(false);
     }
   };
 
@@ -328,6 +400,16 @@ const AddTenant = () => {
         <div className="bg-white shadow-sm rounded-lg p-6">
           <h2 className="text-xl font-semibold text-gray-900 mb-6">Tenant Information</h2>
           
+          {searchingTenants && (
+            <div className="mb-4 flex items-center text-sm text-gray-600">
+              <svg className="animate-spin h-4 w-4 text-primary-600 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              Checking for existing tenants...
+            </div>
+          )}
+          
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
@@ -375,6 +457,87 @@ const AddTenant = () => {
             </div>
           </div>
         </div>
+
+        {/* Tenant Suggestions */}
+        {showSuggestions && (
+          <div className="bg-white shadow-sm rounded-lg p-6 mt-8">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-medium text-gray-900">Is this your tenant?</h3>
+              <button
+                type="button"
+                onClick={() => setShowSuggestions(false)}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <p className="text-gray-600 mb-4">
+              We found existing tenants that match your input. Select one or continue adding a new tenant.
+            </p>
+            {searchingTenants ? (
+              <div className="flex items-center justify-center py-8">
+                <svg className="animate-spin h-6 w-6 text-primary-600 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                <span className="text-gray-600">Searching for existing tenants...</span>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {tenantSuggestions.map((tenant) => (
+                  <div
+                    key={tenant._id}
+                    className="border border-gray-200 rounded-lg p-4 hover:border-primary-300 hover:bg-primary-50 transition-colors cursor-pointer"
+                    onClick={() => navigate(`/profile/${tenant._id}`)}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-3">
+                        <div className="h-10 w-10 rounded-full bg-primary-100 flex items-center justify-center">
+                          <span className="text-primary-600 font-semibold text-sm">
+                            {tenant.name?.charAt(0)?.toUpperCase() || 'T'}
+                          </span>
+                        </div>
+                        <div>
+                          <h4 className="font-medium text-gray-900">{tenant.name}</h4>
+                          <p className="text-sm text-gray-600">
+                            {tenant.email && <span>{tenant.email}</span>}
+                            {tenant.email && tenant.phone_number && <span> • </span>}
+                            {tenant.phone_number && <span>{tenant.phone_number}</span>}
+                          </p>
+                          <div className="flex items-center space-x-2 mt-1">
+                            <span className="text-sm text-gray-500">
+                              {tenant.average_rating?.toFixed(1) || '0.0'} rating
+                            </span>
+                            <span className="text-sm text-gray-500">
+                              ({tenant.total_reviews || 0} reviews)
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <span className="text-sm text-primary-600 font-medium">View Profile</span>
+                        <svg className="w-4 h-4 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                        </svg>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+            <div className="mt-4 pt-4 border-t border-gray-200">
+              <button
+                type="button"
+                onClick={() => setShowSuggestions(false)}
+                className="text-sm text-gray-600 hover:text-gray-800 font-medium"
+              >
+                Continue adding new tenant
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Review Section */}
         <div className="bg-white shadow-sm rounded-lg p-6">

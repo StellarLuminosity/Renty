@@ -27,11 +27,11 @@ const UserCard = ({ user }) => {
         <div className="flex-1">
           <div className="flex items-start justify-between">
             <div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-1">
+              <h3 className="text-lg font-semibold text-gray-900 mb-3">
                 {user.name || `User ${user.id}`}
               </h3>
               
-              <div className="flex items-center space-x-2 mb-2">
+              <div className="flex items-center space-x-2 mb-4">
                 <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                   user.role === 'landlord' 
                     ? 'bg-blue-100 text-blue-800' 

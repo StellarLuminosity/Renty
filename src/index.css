@@ -31,6 +31,6 @@
   }
   
   .card {
-    @apply bg-white rounded-lg shadow-md p-6 border border-gray-200;
+    @apply bg-white rounded-lg shadow-md p-8 border border-gray-200;
   }
 }

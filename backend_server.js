@@ -225,7 +225,7 @@ app.get('/api/tenants/search', authenticateToken, async (req, res) => {
       query = { name: { $regex: name.trim(), $options: 'i' } };
     }
 
-    const tenants = await db.collection('tenants').find(query).limit(10).toArray();
+    const tenants = await db.collection('tenants').find(query).toArray();
 
     res.json({ data: tenants });
 

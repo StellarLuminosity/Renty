@@ -80,8 +80,8 @@ export const tenantAPI = {
   searchTenants: async (name) => {
     try {
       const response = await api.get(`/tenants/search?name=${encodeURIComponent(name || '')}`);
-      // Backend returns { data: [tenants] }, so we return response.data directly
-      return response.data;
+      // Backend returns { data: [tenants] }, so we return { data: response.data } to be consistent
+      return { data: response.data };
     } catch (error) {
       throw new Error(error.response?.data?.error || 'Failed to search tenants');
     }
@@ -91,7 +91,7 @@ export const tenantAPI = {
   getTenantProfile: async (tenantId) => {
     try {
       const response = await api.get(`/tenants/${tenantId}`);
-      return response.data;
+      return { data: response.data };
     } catch (error) {
       throw new Error(error.response?.data?.error || 'Failed to get tenant profile');
     }

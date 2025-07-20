@@ -26,7 +26,7 @@ const Dashboard = () => {
     
     try {
       const response = await tenantAPI.searchTenants(query);
-      setTenants(response.data || []);
+      setTenants(response.data.data || []);
       setHasSearched(true);
       
     } catch (err) {
@@ -159,10 +159,12 @@ const Dashboard = () => {
               </p>
             </div>
             
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-              {tenants.map((tenant) => (
-                <UserCard key={tenant._id} user={tenant} />
-              ))}
+            <div className="bg-white border border-gray-200 rounded-lg p-6 max-h-[32rem] overflow-y-auto">
+              <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
+                {tenants.map((tenant) => (
+                  <UserCard key={tenant._id} user={tenant} />
+                ))}
+              </div>
             </div>
           </>
         ) : hasSearched && searchQuery.trim() ? (

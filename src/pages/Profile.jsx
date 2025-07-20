@@ -26,8 +26,8 @@ const Profile = () => {
     try {
       const response = await tenantAPI.getTenantProfile(id);
       
-      // Handle the wrapped response - extract the actual tenant data
-      const tenantData = response.data || response;
+      // Handle the nested API response structure
+      const tenantData = response.data.data || response.data || response;
       
       setProfile(tenantData);
     } catch (err) {
@@ -47,9 +47,17 @@ const Profile = () => {
     if (!reviews || reviews.length === 0) return 0;
     
     const totalRating = reviews.reduce((sum, review) => {
+      // Use the overall rating field, fallback to detailed ratings calculation
+      if (review.rating) {
+        return sum + review.rating;
+      }
+      // Fallback to detailed ratings calculation if overall rating not available
       const ratings = Object.values(review.ratings || {});
-      const avgRating = ratings.reduce((a, b) => a + b, 0) / ratings.length;
-      return sum + avgRating;
+      if (ratings.length > 0) {
+        const avgRating = ratings.reduce((a, b) => a + b, 0) / ratings.length;
+        return sum + avgRating;
+      }
+      return sum;
     }, 0);
     
     return totalRating / reviews.length;
@@ -124,7 +132,7 @@ const Profile = () => {
     );
   }
 
-  const averageRating = profile ? calculateAverageRating(profile.reviews_received || profile.reviews) : 0;
+  const averageRating = profile ? profile.average_rating : 0;
 
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
