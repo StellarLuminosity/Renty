@@ -118,7 +118,7 @@ const NotFound = () => {
             <p className="text-sm text-gray-500">
               Still having trouble?{' '}
               <a
-                href="mailto:support@rently.com"
+                href="mailto:support@renty.com"
                 className="text-primary-600 hover:text-primary-500 font-medium"
               >
                 Contact support

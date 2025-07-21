@@ -449,7 +449,7 @@ const LeaveReview = () => {
       // Navigate to confirmation page with review data
       navigate('/review-confirmation', {
         state: {
-          review: response.data,
+          review: response.data.data,  // Backend wraps review in data.data
           targetUser: targetUser,
           creditEarned: true
         }

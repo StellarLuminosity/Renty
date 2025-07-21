@@ -128,6 +128,19 @@ const Dashboard = () => {
     setShowOutreachModal(true);
   };
   
+  const fillSampleData = () => {
+    setOutreachForm({
+      propertyAddress: '456 Queen Street West, Toronto, ON M5V 2A8',
+      propertyType: 'condo',
+      bedrooms: '2',
+      monthlyRent: '2850',
+      moveInDate: 'March 1st, 2025',
+      contactPhone: '416-555-0123',
+      amenities: '• In-unit washer/dryer\n• Stainless steel appliances\n• Granite countertops\n• Floor-to-ceiling windows\n• Private balcony with city views\n• Underground parking included\n• 24/7 concierge\n• Fitness center & rooftop terrace',
+      additionalInfo: 'This premium unit features an open-concept design with 9-foot ceilings and hardwood floors throughout. Located steps from King Street West entertainment district, with easy TTC access. Pet-friendly building (small pets welcome). Looking for responsible tenants with excellent references. First and last month\'s rent required. Available for immediate viewing!'
+    });
+  };
+  
   const sendOutreach = () => {
     // Deduct credit
     const newCredits = 0;
@@ -186,7 +199,7 @@ This message was sent through RentEZ based on your positive tenant reviews.
       additionalInfo: ''
     });
     
-    alert(`Outreach sent to ${filteredTenants.length} tenants! Check console for email content.`);
+    alert(`Outreach sent to ${filteredTenants.length} tenants.`);
   };
   
   const displayTenants = hasActiveFilters ? filteredTenants : tenants;
@@ -502,10 +515,20 @@ This message was sent through RentEZ based on your positive tenant reviews.
       {showOutreachModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
-            <h3 className="text-xl font-bold mb-2">📧 Professional Outreach Template</h3>
-            <p className="text-sm text-gray-600 mb-6">
-              Create a professional marketing email to send to {filteredTenants.length} qualified tenants (uses 1 credit)
-            </p>
+            <div className="flex justify-between items-start mb-4">
+              <div>
+                <h3 className="text-xl font-bold mb-2">📧 Professional Outreach Template</h3>
+                <p className="text-sm text-gray-600">
+                  Create a professional marketing email to send to {filteredTenants.length} qualified tenants (uses 1 credit)
+                </p>
+              </div>
+              <button
+                onClick={fillSampleData}
+                className="ml-4 px-3 py-1.5 bg-blue-100 hover:bg-blue-200 text-blue-700 text-sm font-medium rounded-md border border-blue-300 transition-colors"
+              >
+                ✨ Fill Sample Data
+              </button>
+            </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="md:col-span-2">

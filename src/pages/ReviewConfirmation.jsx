@@ -10,6 +10,13 @@ const ReviewConfirmation = () => {
   
   // Get review data from navigation state
   const { review, targetUser, creditEarned } = location.state || {};
+  
+  // Debug logging
+  console.log('=== REVIEW CONFIRMATION DEBUG ===');
+  console.log('Review object:', review);
+  console.log('Review.rating:', review?.rating);
+  console.log('Review.ratings:', review?.ratings);
+  console.log('TargetUser:', targetUser);
 
   // Redirect if no review data
   React.useEffect(() => {
@@ -23,22 +30,45 @@ const ReviewConfirmation = () => {
   }
 
   const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
+    try {
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) {
+        return new Date().toLocaleDateString('en-US', {
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit'
+        });
+      }
+      return date.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    } catch {
+      return 'Just now';
+    }
   };
 
   const calculateAverageRating = (ratings) => {
-    if (!ratings) return 0;
-    const values = Object.values(ratings);
+    if (!ratings || typeof ratings !== 'object') return 0;
+    const values = Object.values(ratings).filter(val => typeof val === 'number' && val > 0);
+    if (values.length === 0) return 0;
     return values.reduce((sum, rating) => sum + rating, 0) / values.length;
   };
 
-  const averageRating = calculateAverageRating(review.ratings);
+  // Use the overall rating if available, otherwise calculate from detailed ratings
+  const calculatedRating = calculateAverageRating(review.ratings);
+  const reviewRating = review ? (parseInt(review.rating) || parseFloat(review.rating) || 0) : 0;
+  const averageRating = reviewRating || calculatedRating || 0;
+  
+  console.log('Raw review.rating:', review?.rating);
+  console.log('Parsed review rating:', reviewRating);
+  console.log('Calculated rating from ratings object:', calculatedRating);
+  console.log('Final average rating used:', averageRating);
 
   return (
     <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -80,7 +110,7 @@ const ReviewConfirmation = () => {
           <h2 className="text-xl font-semibold text-gray-900 mb-2">Review Summary</h2>
           <div className="flex items-center space-x-4 text-sm text-gray-600">
             <span>
-              <strong>For:</strong> {targetUser.name || `User ${targetUser.id}`} ({targetUser.role})
+              <strong>For:</strong> {targetUser.name || targetUser.full_name || targetUser.first_name || `User ${targetUser.id || targetUser._id}`} ({targetUser.role || 'tenant'})
             </span>
             <span>•</span>
             <span>
@@ -210,7 +240,7 @@ const ReviewConfirmation = () => {
               onClick={() => {
                 if (navigator.share) {
                   navigator.share({
-                    title: 'Rently Review',
+                    title: 'Renty Review',
                     text: `I just left a review on Rently for ${targetUser.name || 'a user'}. Check out their profile!`,
                     url: window.location.origin + `/profile/${targetUser.id}`
                   });

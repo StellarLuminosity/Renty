@@ -82,7 +82,7 @@ const Login = () => {
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         {/* Header */}
         <div className="text-center">
-          <h1 className="text-4xl font-bold text-primary-600 mb-2">Rently</h1>
+          <h1 className="text-4xl font-bold text-primary-600 mb-2">Renty</h1>
           <h2 className="text-2xl font-bold text-gray-900 mb-2">Welcome back</h2>
           <p className="text-gray-600">Sign in to your account</p>
         </div>
@@ -183,7 +183,7 @@ const Login = () => {
             {/* Sign Up Link */}
             <div className="text-center">
               <p className="text-sm text-gray-600">
-                New to Rently?{' '}
+                New to Renty?{' '}
                 <Link
                   to="/signup"
                   className="font-medium text-primary-600 hover:text-primary-500"

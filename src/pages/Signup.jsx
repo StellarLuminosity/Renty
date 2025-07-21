@@ -204,7 +204,7 @@ const Signup = () => {
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         {/* Header */}
         <div className="text-center">
-          <h1 className="text-4xl font-bold text-primary-600 mb-2">Rently</h1>
+          <h1 className="text-4xl font-bold text-primary-600 mb-2">Renty</h1>
           <h2 className="text-2xl font-bold text-gray-900 mb-2">Create Landlord Account</h2>
           <p className="text-gray-600">Join the landlord review community</p>
         </div>

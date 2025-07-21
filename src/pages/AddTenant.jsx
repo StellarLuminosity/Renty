@@ -115,6 +115,25 @@ const AddTenant = () => {
     }
   };
 
+  // Fill sample data function
+  const fillSampleData = () => {
+    setTenantData({
+      name: 'Jane Doe',
+      phone: '6476476477',
+      email: 'JaneDoeDoeDoe@gmail.com'
+    });
+    
+    setReviewData(prev => ({
+      ...prev,
+      property_address: '123 Main St, Apt 2B, New York, New York',
+      rental_period: 'Jan 15 - Dec 24',
+      comment: 'Great tenant !'
+    }));
+    
+    // Clear any existing errors
+    setErrors({});
+  };
+
   // Search for existing tenants when 2 fields are filled
   const searchExistingTenants = async () => {
     // Use debounced values to avoid too many API calls
@@ -534,16 +553,24 @@ const AddTenant = () => {
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       {/* Header */}
       <div className="mb-8">
-        <div className="flex items-center mb-4">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center">
+            <button
+              onClick={() => navigate('/dashboard')}
+              className="mr-4 p-2 text-gray-400 hover:text-gray-600 transition-colors"
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+            </button>
+            <h1 className="text-3xl font-bold text-gray-900">Add New Tenant</h1>
+          </div>
           <button
-            onClick={() => navigate('/dashboard')}
-            className="mr-4 p-2 text-gray-400 hover:text-gray-600 transition-colors"
+            onClick={fillSampleData}
+            className="px-4 py-2 bg-blue-100 hover:bg-blue-200 text-blue-700 text-sm font-medium rounded-md border border-blue-300 transition-colors"
           >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-            </svg>
+            ✨ Fill Sample Data
           </button>
-          <h1 className="text-3xl font-bold text-gray-900">Add New Tenant</h1>
         </div>
         <p className="text-gray-600">
           Add a new tenant to the system and leave your first review for them.
