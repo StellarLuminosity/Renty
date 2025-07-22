@@ -1,8 +1,23 @@
-# RentEZ - Landlord Tenant Review Platform
+# Renty - Landlord Tenant Review Platform
 
 A full-stack web application that allows landlords to create comprehensive tenant reviews, helps property owners make informed decisions when screening potential tenants, and conduct outreach with rental proposals to tenants in good standing. 
 
+## Inspiration
+
+A bad tenant costs a landlord on average $10,000 in unpaid rent (some lose as much as $135,000!), property damage, legal fees, and lost income. It can take 9 to 12 months to get a court hearing to evict the tenant from the property — all while the landlord is still paying the mortgage, the propertytaxes, and for utilities.
+
+
+In the U.S., 3.6 million evictions are filed each year. Multiply that by the average cost of $3,500 — and you’re looking at a $12.6 billion annual disaster. 
+
+![Inspiration](./assets/image.png)
+
+This is not just a nuisance — it’s a crisis.
+
+But what if, the landlord could prevent this from happening in the first place?
+
 ## 🚀 Features
+
+This is what our platform solves. It gives landlords the chance to review poor tenants and add visibility on this platform so that other landlords don't fall victim to the same "professional tenants". The can also leave positive reviews for good ones, helping drive market growth and landlord-tenant satisfaction.
 
 - **Tenant Management**: Add new tenants with contact information
 - **Comprehensive Reviews**: Rate tenants on multiple criteria (multi-star rating system of on-time rent payments, lease completion, communication, property care, legal disputes and comments)
