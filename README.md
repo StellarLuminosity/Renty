@@ -1,16 +1,33 @@
 # RentEZ - Landlord Tenant Review Platform
 
-A full-stack web application that allows landlords to create comprehensive tenant reviews, helping property owners make informed decisions when screening potential tenants.
+A full-stack web application that allows landlords to create comprehensive tenant reviews, helps property owners make informed decisions when screening potential tenants, and conduct outreach with rental proposals to tenants in good standing. 
 
 ## 🚀 Features
 
 - **Tenant Management**: Add new tenants with contact information
-- **Comprehensive Reviews**: Rate tenants on multiple criteria (rent payments, lease completion, communication, property care, legal disputes)
-- **File Uploads**: Upload lease agreements and evidence files (images, videos, PDFs)
-- **Search & Filter**: Find tenants by name with instant search
-- **User Authentication**: Secure JWT-based login system
+- **Comprehensive Reviews**: Rate tenants on multiple criteria (multi-star rating system of on-time rent payments, lease completion, communication, property care, legal disputes and comments)
+- **Backed by real-world data** - Tenant reviews are backed by credit score verification and bankrupcy history for a holistic view of tenant reliability
+- **File Uploads**: Upload lease agreements and evidence files (images, videos, PDFs) to back reviews
+- **Search & Filter**: Find tenants by name with instant search. Filter by rating and location
+- **User Authentication**: Secure JWT-based login system with Auth0 integration
 - **Modern UI**: Clean, responsive design with React components
 - **Star Ratings**: Visual rating system for easy review display
+- **Email Campaigns**: Send email proposals for property leasings to tenants with good scores and reviews through the platform
+
+## Demo
+
+### *Dashboard:*
+![Photo of dashboard](./assets/dashboard.png)
+
+### *Leave a Review:*
+![Photo of leave a review](./assets/leave_review.png)
+![Photo of leave a review](./assets/leave_review_2.png)
+
+### *View Tenant Profile:*
+![Photo of tenant details](./assets/tenant_profile.png)
+
+### *Tenant Outreach Campaign:*
+![Photo of tenant outreach](./assets/tenant_outreach.png)
 
 ## 🛠️ Tech Stack
 
@@ -24,12 +41,11 @@ A full-stack web application that allows landlords to create comprehensive tenan
 **Backend:**
 - Node.js with Express.js
 - MongoDB with native driver
-- JWT authentication
+- JWT authentication with Auth0 integration
 - Multer for file uploads
 - CORS enabled for cross-origin requests
 
 ## 📋 Prerequisites
-
 - Node.js (v14 or higher)
 - npm or yarn
 - MongoDB (local installation or MongoDB Atlas)
@@ -173,4 +189,4 @@ This project is licensed under the MIT License.
 
 ## 📞 Support
 
-For support, please open an issue on GitHub or contact the development team.
+For support, please open an issue on GitHub.
