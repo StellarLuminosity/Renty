@@ -4,16 +4,17 @@ A full-stack web application that allows landlords to create comprehensive tenan
 
 ## Inspiration
 
-A bad tenant costs a landlord on average $10,000 in unpaid rent (some lose as much as $135,000!), property damage, legal fees, and lost income. It can take 9 to 12 months to get a court hearing to evict the tenant from the property — all while the landlord is still paying the mortgage, the propertytaxes, and for utilities.
+A bad tenant costs a landlord on average $5,000 in unpaid rent (some lose as much as $135,000!), property damage, legal fees, and lost income. It can take 9 to 12 months to get a court hearing to evict the tenant from the property — all while the landlord is still paying the mortgage, the property taxes, and utilities.
 
 
-In the U.S., 3.6 million evictions are filed each year. Multiply that by the average cost of $3,500 — and you’re looking at a $12.6 billion annual disaster. 
+In the U.S. **3.6 million evictions are filed each year**. Multiply that by the average cost of $5,000 — and you’re looking at a 
+***$18 billion annual disaster***. 
 
 ![Inspiration](./assets/image.png)
 
 This is not just a nuisance — it’s a crisis.
 
-But what if, the landlord could prevent this from happening in the first place?
+... But what if, the landlord could prevent this headache in the first place?
 
 ## 🚀 Features
 
