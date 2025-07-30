@@ -23,7 +23,7 @@ const AddTenant = () => {
     name: searchParams.get('name') || '',
     phone: '',
     email: ''
-  });
+  }); 
   
   // Review information
   const [ratings, setRatings] = useState({
