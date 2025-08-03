@@ -30,21 +30,6 @@ This is what our platform solves. It gives landlords the chance to review poor t
 - **Star Ratings**: Visual rating system for easy review display
 - **Email Campaigns**: Send email proposals for property leasings to tenants with good scores and reviews through the platform
 
-## Demo
-
-### *Dashboard:*
-![Photo of dashboard](./assets/dashboard.png)
-
-### *Leave a Review:*
-![Photo of leave a review](./assets/leave_review.png)
-![Photo of leave a review](./assets/leave_review_2.png)
-
-### *View Tenant Profile:*
-![Photo of tenant details](./assets/tenant_profile.png)
-
-### *Tenant Outreach Campaign:*
-![Photo of tenant outreach](./assets/tenant_outreach.png)
-
 ## 🛠️ Tech Stack
 
 **Frontend:**
@@ -60,6 +45,21 @@ This is what our platform solves. It gives landlords the chance to review poor t
 - JWT authentication with Auth0 integration
 - Multer for file uploads
 - CORS enabled for cross-origin requests
+
+## Demo
+
+### *Dashboard:*
+![Photo of dashboard](./assets/dashboard.png)
+
+### *Leave a Review:*
+![Photo of leave a review](./assets/leave_review.png)
+![Photo of leave a review](./assets/leave_review_2.png)
+
+### *View Tenant Profile:*
+![Photo of tenant details](./assets/tenant_profile.png)
+
+### *Tenant Outreach Campaign:*
+![Photo of tenant outreach](./assets/tenant_outreach.png)
 
 ## 📋 Prerequisites
 - Node.js (v14 or higher)
